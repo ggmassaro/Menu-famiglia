@@ -1,0 +1,352 @@
+/* Stili personalizzati - Spese Famiglia */
+
+:root {
+  --bg-page: #0d0d14;
+  --bg-card: #1b1b29;
+  --bg-card-alt: #14141f;
+  --border-subtle: #26263a;
+  --text-primary: #f2f2f5;
+  --text-secondary: #b8b7c5;
+  --text-muted: #a3a2b0;
+  --gradient-warm: linear-gradient(135deg, #7b5cff, #e85fb0, #ff9a5a);
+  --status-ok-bg: #39ff8c;
+  --status-ok-text: #003d1a;
+  --status-warn-bg: #ffe066;
+  --status-warn-text: #4a3800;
+  --status-over-bg: #ff4d5e;
+  --status-over-text: #ffffff;
+}
+
+body {
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Titolo con gradiente */
+.app-title {
+  display: inline-block;
+  background: var(--gradient-warm);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Testo attenuato (etichette, sottotitoli) */
+.text-muted,
+.form-label,
+.form-text,
+label {
+  color: var(--text-secondary) !important;
+}
+
+/* Card */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  color: var(--text-primary);
+}
+
+/* Campi form */
+.form-control,
+.form-select {
+  background: var(--bg-card-alt);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+}
+
+.form-control:focus,
+.form-select:focus {
+  background: var(--bg-card-alt);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+  box-shadow: 0 0 0 0.2rem rgba(123, 92, 255, 0.25);
+}
+
+.form-control::placeholder {
+  color: var(--text-muted);
+}
+
+.form-select option {
+  background: var(--bg-card-alt);
+  color: var(--text-primary);
+}
+
+.input-group-text {
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+/* Tabelle */
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--text-primary);
+  --bs-table-striped-bg: rgba(255, 255, 255, 0.03);
+  --bs-table-striped-color: var(--text-primary);
+  --bs-table-border-color: var(--border-subtle);
+}
+
+/* Tab di navigazione */
+.nav-tabs {
+  background: var(--bg-card);
+  border-bottom: none;
+  border-radius: 16px;
+  padding: 6px;
+  gap: 4px;
+}
+
+.nav-tabs .nav-link {
+  border: none;
+  margin-bottom: 0;
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.nav-tabs .nav-link:hover,
+.nav-tabs .nav-link:focus {
+  border-color: transparent;
+  color: var(--text-primary);
+}
+
+.nav-tabs .nav-link.active {
+  background: var(--gradient-warm);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+}
+
+.tab-content {
+  background: transparent;
+  margin-top: 12px;
+}
+
+/* Alert */
+.alert-success {
+  --bs-alert-bg: rgba(57, 255, 140, 0.15);
+  --bs-alert-color: #7cffb2;
+  --bs-alert-border-color: rgba(57, 255, 140, 0.35);
+}
+
+.alert-danger {
+  --bs-alert-bg: rgba(255, 77, 94, 0.15);
+  --bs-alert-color: #ff8792;
+  --bs-alert-border-color: rgba(255, 77, 94, 0.35);
+}
+
+.alert-warning {
+  --bs-alert-bg: rgba(255, 224, 102, 0.15);
+  --bs-alert-color: #ffe066;
+  --bs-alert-border-color: rgba(255, 224, 102, 0.35);
+}
+
+.alert-info {
+  --bs-alert-bg: rgba(44, 126, 248, 0.15);
+  --bs-alert-color: #7aa6ff;
+  --bs-alert-border-color: rgba(44, 126, 248, 0.35);
+}
+
+.btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Pulsanti principali (azioni di conferma/salvataggio) */
+#login-button,
+#spesa-submit-button,
+#budget-submit-button,
+#spesa-nuova-button,
+#budget-nuovo-button {
+  background: var(--gradient-warm);
+  border: none;
+  color: #ffffff;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+#login-button:hover,
+#spesa-submit-button:hover,
+#budget-submit-button:hover,
+#spesa-nuova-button:hover,
+#budget-nuovo-button:hover {
+  color: #ffffff;
+  opacity: 0.92;
+}
+
+/* Pulsanti secondari (discreti, senza gradiente) */
+.btn-outline-secondary,
+.btn-outline-primary {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-primary:hover {
+  background: var(--bg-card-alt);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+
+/* Pulsante Elimina (accento rosso) */
+.btn-outline-danger {
+  background: transparent;
+  border-color: var(--status-over-bg);
+  color: var(--status-over-bg);
+}
+
+.btn-outline-danger:hover {
+  background: var(--status-over-bg);
+  color: #ffffff;
+}
+
+/* Barre di progresso Budget */
+.progress {
+  background: var(--bg-card-alt);
+}
+
+.progress-bar.bg-success {
+  background: linear-gradient(90deg, #2c7ef8, #38c6f4) !important;
+}
+
+.progress-bar.bg-warning {
+  background: #ffe066 !important;
+}
+
+.progress-bar.bg-danger {
+  background: #ff4d5e !important;
+}
+
+/* Pillola di stato Actual vs Budget */
+.status-pill {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.status-pill.status-ok {
+  background: var(--status-ok-bg);
+  color: var(--status-ok-text);
+}
+
+.status-pill.status-warn {
+  background: var(--status-warn-bg);
+  color: var(--status-warn-text);
+}
+
+.status-pill.status-over {
+  background: var(--status-over-bg);
+  color: var(--status-over-text);
+}
+
+/* Card Budget cliccabile per aprire il dettaglio spese */
+.budget-card-cliccabile {
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.budget-card-cliccabile:hover {
+  filter: brightness(1.1);
+}
+
+/* Pallino colorato per Voce spesa */
+.voce-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* Card mobile "Spese recenti" */
+.spesa-card-mobile {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.spesa-card-mobile .spesa-card-riga-alto {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.spesa-card-mobile .spesa-card-importo {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.spesa-card-mobile .spesa-card-riga {
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.spesa-card-mobile .spesa-card-azioni {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.spesa-card-mobile .spesa-card-azioni .btn {
+  flex: 1;
+}
+
+/* Elenco card mobile "Spese recenti": nascosto di default (desktop) */
+#spese-cards-mobile {
+  display: none;
+}
+
+/* Checklist Voci/Gruppi nel form Budget (sostituisce il select multiplo nativo) */
+.budget-checklist {
+  max-height: 160px;
+  overflow-y: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--bg-card-alt);
+}
+
+.budget-checklist .form-check {
+  margin-bottom: 4px;
+}
+
+/* Modale e liste (usati per "Gestisci voci/gruppi") */
+.modal-content {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+}
+
+.modal-header,
+.modal-footer {
+  border-color: var(--border-subtle);
+}
+
+.list-group-item {
+  background: var(--bg-card-alt);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+
+/* Adattamenti mobile (sotto i 576px) */
+@media (max-width: 576px) {
+  .app-title {
+    font-size: 1.5rem;
+  }
+
+  #spese-tabella-desktop-container {
+    display: none;
+  }
+
+  #spese-cards-mobile {
+    display: block;
+  }
+}

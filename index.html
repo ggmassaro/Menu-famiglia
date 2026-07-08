@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spese Famiglia</title>
+
+  <!-- Font Google "Poppins" -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap CSS (CDN) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Stili personalizzati -->
+  <link href="css/style.css" rel="stylesheet">
+
+  <!-- Manifest e icone -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+</head>
+<body>
+
+  <!-- Schermata di login -->
+  <div id="login-screen" class="d-flex align-items-center justify-content-center vh-100">
+    <div class="card shadow-sm" style="width: 100%; max-width: 360px;">
+      <div class="card-body p-4">
+        <h2 class="card-title text-center mb-4">Accedi</h2>
+        <div class="mb-3">
+          <label for="login-email" class="form-label">Email</label>
+          <input type="email" class="form-control" id="login-email" placeholder="nome@esempio.it">
+        </div>
+        <div class="mb-3">
+          <label for="login-password" class="form-label">Password</label>
+          <input type="password" class="form-control" id="login-password" placeholder="Password">
+        </div>
+        <div id="login-error" class="alert alert-danger d-none" role="alert"></div>
+        <button type="button" id="login-button" class="btn btn-primary w-100">Accedi</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="app-container" class="container py-4 d-none">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="mb-0 app-title">Spese Famiglia</h1>
+      <div class="d-flex align-items-center gap-3">
+        <span id="user-email" class="text-muted small"></span>
+        <button type="button" id="logout-button" class="btn btn-outline-secondary btn-sm">Esci</button>
+      </div>
+    </div>
+
+    <div id="promemoria-fine-mese-banner" class="alert alert-warning alert-dismissible fade show d-none" role="alert">
+      Attenzione: nuovo mese in arrivo. Ricordati di impostare/confermare i budget del mese prossimo.
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Chiudi"></button>
+    </div>
+
+    <!-- Navigazione a tab -->
+    <ul class="nav nav-tabs" id="mainTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="inserisci-tab" data-bs-toggle="tab" data-bs-target="#inserisci-pane" type="button" role="tab" aria-controls="inserisci-pane" aria-selected="true">
+          Spese
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard-pane" type="button" role="tab" aria-controls="dashboard-pane" aria-selected="false">
+          Dashboard
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="budget-tab" data-bs-toggle="tab" data-bs-target="#budget-pane" type="button" role="tab" aria-controls="budget-pane" aria-selected="false">
+          Budget
+        </button>
+      </li>
+    </ul>
+
+    <!-- Contenuto tab -->
+    <div class="tab-content" id="mainTabContent">
+      <div class="tab-pane fade show active" id="inserisci-pane" role="tabpanel" aria-labelledby="inserisci-tab" tabindex="0">
+        <div class="card mt-3 mb-4">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <button type="button" id="spesa-nuova-button" class="btn btn-outline-primary">+ Nuova Spesa</button>
+              <button type="button" id="gestisci-voci-gruppi-button" class="btn btn-outline-secondary btn-sm">Gestisci voci/gruppi</button>
+            </div>
+
+            <div id="spesa-form-container" class="d-none mt-3">
+              <form id="spesa-form" novalidate>
+                <div class="row g-3">
+                  <div class="col-6 col-md-3">
+                    <label for="spesa-data" class="form-label">Data</label>
+                    <input type="date" class="form-control" id="spesa-data" required>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label for="spesa-importo" class="form-label">Importo (&euro;)</label>
+                    <input type="number" class="form-control" id="spesa-importo" step="0.01" min="0" required>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label for="spesa-voce" class="form-label">Voce spesa</label>
+                    <select class="form-select" id="spesa-voce" required></select>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label for="spesa-gruppo" class="form-label">Gruppo spesa</label>
+                    <select class="form-select" id="spesa-gruppo" required></select>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label for="spesa-metodo" class="form-label">Metodo pagamento</label>
+                    <select class="form-select" id="spesa-metodo" required>
+                      <option value="Contanti">Contanti</option>
+                      <option value="Carta">Carta</option>
+                      <option value="Satispay">Satispay</option>
+                      <option value="Bonifico">Bonifico</option>
+                    </select>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label for="spesa-conto" class="form-label">Quale Conto</label>
+                    <select class="form-select" id="spesa-conto" required>
+                      <option value="Condiviso" selected>Condiviso</option>
+                      <option value="Gioele">Gioele</option>
+                      <option value="Giovanna">Giovanna</option>
+                    </select>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <label for="spesa-nota" class="form-label">Nota</label>
+                    <input type="text" class="form-control" id="spesa-nota" placeholder="Facoltativa">
+                  </div>
+                </div>
+
+                <div id="spesa-feedback" class="alert d-none mt-3" role="alert"></div>
+
+                <div class="mt-3 d-flex gap-2">
+                  <button type="submit" id="spesa-submit-button" class="btn btn-primary">Salva spesa</button>
+                  <button type="button" id="annulla-modifica-button" class="btn btn-outline-secondary">Annulla</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <h5>Spese recenti</h5>
+            <div class="mb-3">
+              <button type="button" id="filtro-spese-toggle-button" class="btn btn-outline-secondary btn-sm">Filtra</button>
+            </div>
+
+            <div id="filtro-spese-container" class="d-none">
+              <div class="row g-2 align-items-end mb-3">
+                <div class="col-6 col-md-2">
+                  <label for="filtro-spese-mese" class="form-label">Mese</label>
+                  <input type="month" class="form-control form-control-sm" id="filtro-spese-mese">
+                </div>
+                <div class="col-6 col-md-2">
+                  <label for="filtro-spese-voce" class="form-label">Voce</label>
+                  <select class="form-select form-select-sm" id="filtro-spese-voce">
+                    <option value="">Tutte</option>
+                  </select>
+                </div>
+                <div class="col-6 col-md-2">
+                  <label for="filtro-spese-gruppo" class="form-label">Gruppo</label>
+                  <select class="form-select form-select-sm" id="filtro-spese-gruppo">
+                    <option value="">Tutti</option>
+                  </select>
+                </div>
+                <div class="col-6 col-md-2">
+                  <label for="filtro-spese-metodo" class="form-label">Metodo</label>
+                  <select class="form-select form-select-sm" id="filtro-spese-metodo">
+                    <option value="">Tutti</option>
+                    <option value="Contanti">Contanti</option>
+                    <option value="Carta">Carta</option>
+                    <option value="Satispay">Satispay</option>
+                    <option value="Bonifico">Bonifico</option>
+                  </select>
+                </div>
+                <div class="col-6 col-md-2">
+                  <label for="filtro-spese-conto" class="form-label">Conto</label>
+                  <select class="form-select form-select-sm" id="filtro-spese-conto">
+                    <option value="">Tutti</option>
+                    <option value="Condiviso">Condiviso</option>
+                    <option value="Gioele">Gioele</option>
+                    <option value="Giovanna">Giovanna</option>
+                    <option value="Non specificato">Non specificato</option>
+                  </select>
+                </div>
+                <div class="col-6 col-md-2">
+                  <button type="button" id="filtro-spese-reset-button" class="btn btn-outline-secondary btn-sm w-100">Cancella filtri</button>
+                </div>
+              </div>
+            </div>
+            <div id="spese-tabella-desktop-container" class="table-responsive">
+              <table class="table table-sm table-striped align-middle">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Importo</th>
+                    <th>Voce spesa</th>
+                    <th>Gruppo spesa</th>
+                    <th>Metodo</th>
+                    <th>Conto</th>
+                    <th>Nota</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="spese-table-body"></tbody>
+              </table>
+            </div>
+            <div id="spese-cards-mobile"></div>
+          </div>
+        </div>
+      </div>
+      <div class="tab-pane fade" id="dashboard-pane" role="tabpanel" aria-labelledby="dashboard-tab" tabindex="0">
+        <div class="row g-3 align-items-end mt-1">
+          <div class="col-6 col-md-3">
+            <label for="dashboard-mese-filtro" class="form-label">Mese</label>
+            <input type="month" class="form-control" id="dashboard-mese-filtro">
+          </div>
+          <div class="col-6 col-md-3 ms-md-auto text-md-end">
+            <button type="button" id="dashboard-export-csv-button" class="btn btn-outline-primary">Esporta CSV</button>
+          </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-body text-center">
+                <div class="text-muted">Totale speso nel mese</div>
+                <div id="dashboard-totale-mese" class="display-5 fw-bold">&euro;0,00</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+          <div class="col-12 col-md-4">
+            <div class="card h-100">
+              <div class="card-body">
+                <h6 class="card-title text-center">Per Voce spesa</h6>
+                <canvas id="dashboard-chart-voce"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="card h-100">
+              <div class="card-body">
+                <h6 class="card-title text-center">Per Gruppo spesa</h6>
+                <canvas id="dashboard-chart-gruppo"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="card h-100">
+              <div class="card-body">
+                <h6 class="card-title text-center">Per Conto</h6>
+                <canvas id="dashboard-chart-conto"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3 mt-1 mb-3">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-body">
+                <h6 class="card-title">Andamento mensile</h6>
+                <canvas id="dashboard-chart-trend"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tab-pane fade" id="budget-pane" role="tabpanel" aria-labelledby="budget-tab" tabindex="0">
+        <div class="card mt-3 mb-4">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-6 col-md-3">
+                <label for="budget-mese-selezionato" class="form-label">Mese</label>
+                <input type="month" class="form-control" id="budget-mese-selezionato">
+              </div>
+            </div>
+
+            <div id="budget-import-banner" class="alert alert-info d-none mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <span>Non hai ancora impostato un budget per questo mese. Vuoi copiare quello del mese scorso?</span>
+              <button type="button" id="budget-copia-mese-scorso-button" class="btn btn-sm btn-primary">Copia budget dal mese scorso</button>
+            </div>
+
+            <div class="mt-3">
+              <button type="button" id="budget-nuovo-button" class="btn btn-outline-primary">+ Nuovo Budget</button>
+            </div>
+
+            <div id="budget-form-container" class="d-none mt-3">
+              <form id="budget-form" novalidate>
+                <div class="row g-3">
+                  <div class="col-12 col-md-4">
+                    <label for="budget-nome" class="form-label">Nome</label>
+                    <input type="text" class="form-control" id="budget-nome" required>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label class="form-label">Voci spesa incluse</label>
+                    <div id="budget-voci-checklist" class="budget-checklist"></div>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label class="form-label">Gruppi spesa inclusi</label>
+                    <div id="budget-gruppi-checklist" class="budget-checklist"></div>
+                  </div>
+                  <div class="col-6 col-md-2">
+                    <label for="budget-importo" class="form-label">Importo mensile (&euro;)</label>
+                    <input type="number" class="form-control" id="budget-importo" step="0.01" min="0" required>
+                  </div>
+                </div>
+                <div class="form-text">Spunta una o pi&ugrave; voci/gruppi. Almeno uno tra Voci e Gruppi &egrave; obbligatorio.</div>
+
+                <div id="budget-feedback" class="alert d-none mt-3" role="alert"></div>
+
+                <div class="mt-3 d-flex gap-2">
+                  <button type="submit" id="budget-submit-button" class="btn btn-primary">Salva budget</button>
+                  <button type="button" id="budget-annulla-modifica-button" class="btn btn-outline-secondary">Annulla</button>
+                </div>
+              </form>
+            </div>
+
+            <div id="budget-bozze-container" class="mt-4 d-none">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Bozze copiate dal mese scorso</h6>
+                <button type="button" id="budget-salva-tutte-bozze-button" class="btn btn-success btn-sm">Salva tutti</button>
+              </div>
+              <div id="budget-bozze-list" class="row g-3"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <div id="budget-totale-riepilogo" class="mb-4 d-none">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="fw-semibold">Totale speso vs Totale budget</span>
+                <span id="budget-totale-status" class="status-pill status-ok"></span>
+              </div>
+              <div class="progress mb-1">
+                <div id="budget-totale-progress-bar" class="progress-bar bg-success" style="width: 0%"></div>
+              </div>
+              <div id="budget-totale-testo" class="small text-secondary"></div>
+            </div>
+
+            <div id="budget-non-coperte-banner" class="alert alert-warning d-none d-flex justify-content-between align-items-center flex-wrap gap-2" role="alert">
+              <span id="budget-non-coperte-testo"></span>
+              <button type="button" id="budget-non-coperte-vedi-button" class="btn btn-sm btn-outline-secondary">Vedi quali</button>
+            </div>
+            <h5>Budget del mese</h5>
+            <div id="budget-lista" class="row g-3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modale gestione Voci/Gruppi spesa -->
+    <div class="modal fade" id="gestisci-voci-gruppi-modal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Gestisci voci e gruppi spesa</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-4">
+              <div class="col-12 col-md-6">
+                <h6>Voci spesa</h6>
+                <ul id="gestione-voci-lista" class="list-group mb-2"></ul>
+                <div class="input-group input-group-sm">
+                  <input type="text" class="form-control" id="gestione-voce-nuova-input" placeholder="Nuova voce...">
+                  <button type="button" class="btn btn-outline-primary" id="gestione-voce-aggiungi-button">Aggiungi</button>
+                </div>
+              </div>
+              <div class="col-12 col-md-6">
+                <h6>Gruppi spesa</h6>
+                <ul id="gestione-gruppi-lista" class="list-group mb-2"></ul>
+                <div class="input-group input-group-sm">
+                  <input type="text" class="form-control" id="gestione-gruppo-nuovo-input" placeholder="Nuovo gruppo...">
+                  <button type="button" class="btn btn-outline-primary" id="gestione-gruppo-aggiungi-button">Aggiungi</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Chiudi</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modale dettaglio spese di un Budget -->
+    <div class="modal fade" id="dettaglio-budget-modal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="dettaglio-budget-titolo">Budget</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+          </div>
+          <div class="modal-body">
+            <div class="table-responsive">
+              <table class="table table-sm table-striped align-middle">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Importo</th>
+                    <th>Voce spesa</th>
+                    <th>Gruppo spesa</th>
+                    <th>Conto</th>
+                  </tr>
+                </thead>
+                <tbody id="dettaglio-budget-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Chiudi</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS Bundle (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Libreria Supabase (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Libreria Chart.js (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+
+  <!-- Supabase config -->
+  <script src="js/supabase-config.js"></script>
+
+  <!-- Logica applicativa -->
+  <script src="js/app.js"></script>
+</body>
+</html>
