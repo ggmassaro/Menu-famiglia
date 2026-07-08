@@ -2,145 +2,243 @@
 
 ## Panoramica
 Web-app per pianificare il menù settimanale della famiglia (4 persone: 2 adulti,
-2 bambine), usata da Gioele e dalla moglie su dispositivi separati, con dati
-condivisi e sincronizzati in tempo reale. Dal menù composto, l'app genera
-automaticamente la lista della spesa settimanale.
+2 bambine), usata da Gioele e dalla moglie Giovanna su dispositivi separati
+(soprattutto telefono), con dati condivisi e sincronizzati in tempo reale.
+Dal menù composto, l'app genera automaticamente la lista della spesa
+settimanale. **Il progetto è COMPLETO ed è online, in uso reale dalla
+famiglia.**
+
+## Link app pubblicata
+**https://ggmassaro.github.io/Menu-famiglia/**
+
+Repository GitHub: `ggmassaro/Menu-famiglia`, branch `main`, pubblicato via
+GitHub Pages (Settings → Pages → Deploy from branch → main → /root).
 
 ## Stack tecnologico
-- Frontend: HTML/CSS/JS vanilla + Bootstrap
-- Database: Supabase (Postgres, piano gratuito, sincronizzazione in tempo reale
-  tramite Supabase Realtime) — stesso stack già validato nel progetto
-  "Spese Familiari"
+- Frontend: HTML/CSS/JS vanilla + Bootstrap 5, architettura **Single Page
+  Application (SPA)** — un solo file `index.html` con più "viste" (div)
+  mostrate/nascoste via JavaScript (mai cambio di URL o ricaricamento pagina)
+- Database: Supabase (Postgres, piano gratuito, progetto dedicato
+  `menu-famiglia`, separato dal progetto "Spese Familiari")
 - Hosting: GitHub Pages (gratuito)
-- Autenticazione: Supabase Auth, email/password, 2 utenti (Gioele + moglie),
-  stessi permessi di lettura/scrittura per entrambi (nessun ruolo admin
-  differenziato)
+- Autenticazione: Supabase Auth, email/password, 2 utenti (Gioele + Giovanna),
+  stessi permessi di lettura/scrittura per entrambi
+- Librerie esterne via CDN: Bootstrap 5.3.3, Supabase JS v2, html2pdf.js
+  0.10.1 (per l'esportazione PDF del menù), Google Fonts (Fraunces, Plus
+  Jakarta Sans)
 
-## Vincoli di progetto
-- Budget zero assoluto, nessun servizio a pagamento
-- Nessun calcolo calorico/macronutrienti: solo organizzazione pasti e quantità
-  ingredienti
-- Nessun riconoscimento automatico prezzi/offerte supermercato in questa fase
-  (rimandato a eventuale fase 2, con inserimento manuale prezzi come unica
-  opzione realistica a costo zero)
-- Feedback nutrizionale basato su soglie da fonti ufficiali (OMS/WHO, World
-  Cancer Research Fund), non un consiglio medico personalizzato
+## Metodo di lavoro adottato
+- **Codice**: Claude fornisce prompt dettagliati da incollare in Claude
+  Code, che crea/modifica i file veri sul computer di Gioele
+- **SQL**: scritto direttamente in chat da Claude, incollato da Gioele
+  nell'SQL Editor di Supabase
+- **Stile grafico**: proposto con anteprime visive (widget) prima di ogni
+  implementazione, iterando col feedback di Gioele prima di scrivere il
+  prompt definitivo
 
 ## Persone e fattore porzione
-| Nome | Ruolo | Fattore porzione |
-|---|---|---|
-| Gioele | Papà | 1,0 |
-| Giovanna | Mamma | 0,9 |
-| Clarissa | Figlia (5 anni) | 0,6 |
-| Ludovica | Figlia (2 anni) | 0,5 |
+| Nome | Ruolo | Fattore porzione | Colore identificativo |
+|---|---|---|---|
+| Gioele | Papà | 1,0 | Blu `#1E88E5` |
+| Giovanna | Mamma | 0,9 | Magenta `#EC407A` |
+| Clarissa | Figlia (5 anni) | 0,6 | Ambra `#FFB300` |
+| Ludovica | Figlia (2 anni) | 0,5 | Verde `#66BB6A` |
 
 **Somma fattori famiglia = 3,0** (usata per convertire quantità "per tutta la
-famiglia" in quantità "per 1 porzione adulto standard": totale famiglia ÷ 3,0)
+famiglia" in quantità "per 1 porzione adulto standard": totale famiglia ÷ 3,0).
+Il calcolo è integrato **direttamente nel form di creazione ricetta** (non più
+manuale): l'utente sceglie se una quantità inserita è "per tutta la famiglia"
+o "già per porzione adulto", il programma converte in automatico.
 
-Logica confermata: se una persona non mangia un piatto del menù (es. variante
-diversa), semplicemente non viene inclusa in "Persone assegnate" per quel
-pasto — il fattore porzione da solo non serve a rappresentare "porzione
-ridotta della stessa ricetta".
+## Modello dati (Supabase/Postgres) — 5 tabelle, tutte con RLS attiva
+Policy RLS su tutte le tabelle: solo utenti autenticati possono
+leggere/scrivere (nessuna distinzione di ruolo tra Gioele e Giovanna).
 
-## Modello dati (aggiornato)
+### `persone`
+id, nome, ruolo, fattore_porzione, created_at
 
-### Ricette (libretto)
-| Campo | Tipo | Note |
-|---|---|---|
-| Nome | Testo | |
-| Categoria pasto | **Multi-selezione**: Colazione / Spuntino / Pranzo / Merenda / Cena | AGGIORNATO: non più scelta singola. Serve solo da filtro comodo in fase di composizione menù, non è una regola nutrizionale |
-| Categoria alimentare | Carne rossa / Carne bianca / Pesce / Legumi / Formaggi-Uova / Verdura / Cereali | Una sola per ricetta. Limite noto e accettato: ingredienti secondari (es. zucchine in una frittata) non vengono conteggiati a parte dal motore nutrizionale |
-| Tag "adatto a" | Adulti / Bambini / Tutti | |
-| Note | Testo libero | Allergie, varianti, sostituzioni, condimenti a piacere (sale, olio) non quantificati |
-| Ingredienti | Lista: nome, quantità per 1 porzione standard adulto, unità, flag "arrotonda a pezzo indivisibile" | Vedi regola arrotondamento sotto |
+### `ricette`
+id, nome, categoria_pasto (**array** di testo — multi-selezione tra
+colazione/spuntino/pranzo/merenda/cena), categoria_alimentare (uno tra
+carne_rossa/carne_bianca/pesce/legumi/formaggi_uova/verdura/cereali),
+adatto_a (adulti/bambini/tutti), note, created_at
 
-### Regola: arrotondamento ingredienti "a pezzo indivisibile"
-Per ingredienti come uova, fette, wurstel ecc. (unità "pezzi"), il calcolo è:
-```
-Quantità calcolata = quantità_base × fattore_persona
-Se flag "a pezzo indivisibile" = Sì:
-    arrotonda al numero intero più vicino (minimo 1)
-```
-Il totale in lista spesa somma i pezzi **già arrotondati per singola persona**,
-non arrotonda il totale famiglia a posteriori.
+### `ingredienti`
+id, ricetta_id (FK → ricette, ON DELETE CASCADE), nome, quantita (per 1
+porzione adulto standard), unita (g/ml/pezzi), arrotonda_a_pezzo (booleano)
 
-### Menù Settimanale (aggiornato)
-- Ogni combinazione **Giorno + Tipo pasto può contenere più ricette abbinate**
-  (es. Lunedì-Cena: Salmone alla piastra + Carote al forno), non una sola
-  ricetta per slot come previsto originariamente
-- Ogni ricetta abbinata mantiene il proprio campo "Persone assegnate"
-  indipendente (es. contorno per tutti, secondo solo per adulti)
+**Regola arrotondamento a pezzo**: per ingredienti indivisibili (uova, ecc.),
+il calcolo per persona è `Math.max(1, Math.round(quantita_base ×
+fattore_porzione))`, applicato **per singola persona prima di sommare**, mai
+sul totale finale.
 
-### Ingredienti: fonte di riferimento per le grammature
-Confermato l'uso del piano alimentare personale di Gioele (redatto da biologo
-nutrizionista, doc. "Gioele_Massaro_alimentazione_050526.pdf") come base di
-riferimento per le quantità "per 1 porzione adulto standard", quando la
-categoria di alimento è presente nel documento (cereali, secondi piatti,
-verdure, frutta). Le indicazioni comportamentali/di reflusso specifiche per
-Gioele NON vengono usate nel motore di feedback nutrizionale familiare, che
-resta basato solo sulle soglie generali OMS/WCRF.
+### `menu_settimanale`
+id, settimana_inizio (date, lunedì della settimana), giorno
+(lunedi..domenica), tipo_pasto (colazione/spuntino/pranzo/merenda/cena),
+ricetta_id (FK → ricette, **blocca la cancellazione** della ricetta se
+referenziata — errore Postgres `23503`, intercettato e mostrato in modo
+comprensibile), persone_assegnate (array di uuid)
 
-## Nuova funzionalità richiesta per il form ricette
-Il form di inserimento ricette dovrà includere un **calcolo automatico**:
-l'utente inserisce "quantità per tutta la famiglia" oppure "quantità per
-singola porzione adulto", e il programma converte in automatico dividendo
-per la somma dei fattori porzione attivi in quel momento (oggi 3,0,
-si aggiorna da sola se cambiano persone/fattori). Requisito confermato,
-non rimandabile.
+**Importante**: ogni combinazione giorno+pasto può avere **più righe**
+(più ricette abbinate, es. secondo + contorno), ciascuna con le proprie
+persone assegnate.
 
-## Le 5 ricette raccolte (dati di test reali)
+### `lista_spesa`
+id, settimana_inizio, ingrediente, quantita_totale, unita,
+categoria_reparto (non popolato attivamente), stato
+(da_comprare/comprato/gia_in_dispensa), is_manuale (booleano)
 
-| # | Nome | Categoria pasto | Categoria alimentare | Adatto a |
-|---|---|---|---|---|
-| 1 | Pasta al pesto | Pranzo, Cena | Cereali | Tutti |
-| 2 | Frittata semplice | Pranzo, Cena | Formaggi-Uova | Bambini |
-| 3 | Frittata con zucchine | Pranzo, Cena | Formaggi-Uova | Adulti |
-| 4 | Salmone alla piastra | Pranzo, Cena | Pesce | Tutti |
-| 5 | Carote al forno | Pranzo, Cena | Verdura | Tutti |
+**Regola di rigenerazione**: il bottone "Genera/Aggiorna" cancella e ricrea
+**solo** le righe con `is_manuale = false`; le voci aggiunte a mano
+(`is_manuale = true`) non vengono mai toccate. Nota nota: se si rigenera a
+metà settimana, lo stato "comprato" delle righe non manuali viene perso
+(comportamento accettato da Gioele, non ancora risolto con un
+salva/ripristina stato).
 
-### Ingredienti (quantità per 1 porzione adulto standard)
-| Ricetta | Ingrediente | Quantità | Unità | Arrotonda a pezzo |
-|---|---|---|---|---|
-| Pasta al pesto | Pasta | 100 | g | No |
-| | Pesto | 30 | g | No |
-| | Parmigiano grattugiato | 12 | g | No |
-| Frittata semplice | Uova | 2 | pezzi | Sì (min. 1) |
-| | Note: filo d'olio, pizzico di sale (non quantificati) | | | |
-| Frittata con zucchine | Uova | 2 | pezzi | Sì (min. 1) |
-| | Zucchine | 150 | g | No |
-| | Note: filo d'olio, pizzico di sale (non quantificati) | | | |
-| Salmone alla piastra | Salmone | 140 | g | No |
-| | Olio EVO | 10 | g | No |
-| Carote al forno | Carote | 220 | g | No |
-| | Olio EVO | 10 | g | No |
+## Funzionalità implementate
 
-Nota: "Carote al forno" è pensata come **ricetta di contorno riutilizzabile**,
-abbinabile a più secondi piatti diversi (non solo al salmone), grazie alla
-nuova regola "più ricette per slot".
+### Autenticazione
+Login/logout per i due utenti, sessione persistente via Supabase Auth.
+Router centralizzato (`js/router.js`) gestisce quale vista mostrare in base
+allo stato della sessione.
 
-## Stile grafico
-Discusso ma **volutamente rimandato**: si procederà con interfaccia grezza
-(tabelle HTML, Bootstrap default) durante i test di logica. Direzione di
-massima annotata per il futuro: stile pulito "da app" (cards, spazio bianco,
-palette 1-2 colori tenui + accenti caldi per azioni), più "minimal-friendly"
-che "minimal-finance", da confermare con palette vera scelta insieme quando
-si arriverà alla fase grafica.
+### Libretto Ricette
+- Visualizzazione a card con filtri cliccabili per categoria alimentare
+- Creazione ricetta: form con categoria pasto multi-selezione (checkbox →
+  chip), categoria alimentare, adatto a, note, righe ingredienti dinamiche
+  (aggiungi/rimuovi), calcolatore automatico famiglia→porzione
+- Modifica ricetta: stesso form precompilato, riusa
+  `caricaRicettaPerModifica()`; salvataggio con UPDATE + cancella/ricrea
+  ingredienti
+- Eliminazione ricetta: con conferma, bloccata se la ricetta è ancora usata
+  nel menù (in qualsiasi settimana, passata o futura)
+
+### Menù Settimanale
+- Selettore settimana (calcola automaticamente il lunedì di riferimento da
+  qualsiasi data scelta)
+- Griglia a 7 card giorno (struttura attuale: elenco verticale, non tab —
+  valutato e accettato per ora anche su mobile)
+- Aggiunta/rimozione ricette per ogni giorno/pasto, con selezione multipla
+  delle persone assegnate (checkbox)
+- **Riepilogo nutrizionale settimanale** in fondo alla vista: conta le
+  ricette per categoria alimentare pianificate nella settimana e le
+  confronta con soglie reali (fonte: Linee Guida CREA per una Sana
+  Alimentazione + World Cancer Research Fund per la carne rossa):
+  - Carne rossa: soglia massima 3/settimana (avviso se superata)
+  - Carne bianca: 2-3/settimana (informativo)
+  - Pesce: 2-3/settimana (informativo)
+  - Legumi: 3-4/settimana (informativo)
+  - Formaggi-Uova, Cereali, Verdura: solo conteggio, nessuna soglia (limiti
+    del modello dati spiegati a schermo)
+  - Testo di disclaimer sempre visibile: indicazioni generali, non un
+    consiglio medico personalizzato, specialmente per le bambine
+- **Esportazione PDF**: bottone "Scarica PDF del menù", genera una griglia
+  stampabile (giorni in colonna, pasti in riga, orientamento landscape),
+  nascondendo automaticamente le righe pasto senza nessuna ricetta in tutta
+  la settimana. Badge colorati per categoria + pallini persona, legenda in
+  fondo. Implementato con `html2pdf.js`; corretto un bug per cui il PDF
+  usciva vuoto (tecnica del "doppio requestAnimationFrame" per dare tempo al
+  browser di disegnare il contenuto prima della cattura).
+
+### Lista della Spesa
+- Generazione automatica dal menù della settimana selezionata (somma per
+  ingrediente, arrotondamento a pezzo per persona prima di sommare)
+- Checkbox "comprato" con aggiornamento visivo immediato (ottimistico) e
+  persistenza su Supabase
+- Voci manuali aggiungibili/eliminabili in autonomia, mai toccate dalla
+  rigenerazione automatica
+
+## Stile grafico (completato)
+Sistema di design definito con Claude tramite anteprime iterative prima di
+ogni implementazione.
+
+**Palette:**
+- Sfondo app: verde salvia chiarissimo `#F3F6F1` con 4 sfumature radiali
+  molto tenui (10%/8% opacità) nei colori corallo/indaco/rosa/verde acqua,
+  fisse in `background-attachment: fixed`
+- Font titoli: **Fraunces** (serif, corsivo, peso 600/700)
+- Font testo: **Plus Jakarta Sans**
+- Colore d'azione (bottoni, checkbox, link): **diverso per sezione**, tramite
+  variabili CSS ereditate dal contenitore di vista:
+  - Menù Settimanale → blu `#1E88C7`
+  - Ricette (incl. form nuova/modifica) → giallo `#FFC107` (testo scuro)
+  - Lista Spesa → fucsia `#E91E8C`
+  - Default/fallback (es. login) → verde acqua `#00BFA6`
+- Colori categoria alimentare (badge pieni, usati ovunque compaia una
+  ricetta): carne_rossa `#E4572E`, carne_bianca `#CC7A3D`, pesce `#1E88C7`,
+  legumi `#7C8A28`, formaggi_uova `#B1527A`, verdura `#3F8C46`, cereali
+  `#F2B705` (testo scuro)
+- Colori giorno (solo per la fascia colorata in cima a ogni card giorno nel
+  menù, puramente per orientamento visivo): stessi 7 colori delle categorie,
+  riusati in rotazione fissa lun→dom
+- Home: palette dedicata a sé (blu, giallo, fucsia sulle 3 card principali,
+  diversa/più intensa rispetto al resto), con card a colore pieno, numeri
+  giganti semi-trasparenti come elemento tipografico decorativo-funzionale
+
+**Componenti ricorrenti**: card bianche con ombra leggera e bordo
+arrotondato (14-20px), badge/chip a pillola, pallini colorati per persona
+(anche sovrapposti a effetto "gruppo" dentro i badge ricetta), bottone
+"torna indietro" a pillola bianca (non più link Bootstrap), filtri a chip
+cliccabili nel libretto ricette.
+
+**Vincolo rispettato**: nessuna icona decorativa (preferenza esplicita di
+Gioele) — solo colore, forma, tipografia.
+
+## Decisioni tecniche chiave (cronologiche)
+- Multi-pagina inizialmente, poi **convertito in SPA** su richiesta esplicita
+  di Gioele (coerenza con progetto precedente "Spese Familiari")
+- Categoria pasto passata da scelta singola a **multi-selezione** dopo
+  obiezione di Gioele (una ricetta può andare bene sia a pranzo che a cena)
+- Una combinazione giorno+pasto può avere **più ricette abbinate**
+- Yogurt/latticini non hanno categoria propria, rientrano in
+  "Formaggi-Uova" — limite noto, non ancora risolto
+- Le soglie nutrizionali usano fonti realmente verificate (CREA, WCRF), non
+  genericamente attribuite all'OMS quando l'OMS non specifica frequenze
+  settimanali precise
+
+## Bug noti e risolti nel percorso (utile per debug futuro)
+- **Live Server necessario in locale**: i file usano `type="module"`,
+  quindi non si possono aprire con doppio click (`file://`), serve
+  l'estensione Live Server di VS Code
+- **GitHub Pages, propagazione lenta**: dopo push multipli ravvicinati può
+  volerci diversi minuti prima che il sito online rifletta i file corretti;
+  in caso di dubbio, controllare il banner verde in Settings → Pages e fare
+  hard refresh (Ctrl+Shift+R) o provare in incognito
+- **Case-sensitivity**: GitHub Pages distingue maiuscole/minuscole nei nomi
+  file/cartelle, a differenza di Windows in locale — causa di bottoni che
+  "non fanno nulla" per file non trovati (verificare sempre la Console per
+  errori 404)
+- **html2pdf.js e contenuto nascosto**: nascondere il contenuto da
+  stampare con `position:absolute; left:-9999px` produce PDF vuoti;
+  soluzione: overlay bianco a schermo intero + contenuto renderizzato
+  normalmente + doppio `requestAnimationFrame` prima della cattura
+
+## Cosa NON è stato implementato (deciso di rimandare/scartare)
+- Riconoscimento automatico prezzi/offerte supermercato (nessuna soluzione
+  gratuita affidabile trovata)
+- Categoria "Latticini" separata da "Formaggi-Uova"
+- Salvataggio/ripristino dello stato "comprato" quando si rigenera la lista
+  spesa a metà settimana
+- Esportazione PDF della lista della spesa (fatto solo per il menù)
+- Storico dei menù settimanali passati (proposta iniziale, mai confermata)
+- Favicon/icona dell'app per la schermata home del telefono
+- Vista "un giorno alla volta" per il menù su mobile (valutata, per ora
+  tenuta come elenco verticale di tutti e 7 i giorni)
 
 ## Stato di avanzamento
-- [x] Briefing iniziale completato (architettura, modello dati, stack, soglie nutrizionali)
-- [x] Raccolta dati reali di test (4 persone + fattori porzione, 5 ricette complete con quantità e categoria alimentare)
-- [ ] Creazione/riuso progetto Supabase con nuove tabelle dedicate
-- [ ] Setup tabelle Supabase (persone, ricette, menu_settimanale, lista_spesa) con regole di sicurezza (RLS)
-- [ ] Autenticazione 2 utenti (Gioele + moglie)
-- [ ] Form gestione libretto ricette (con calcolo automatico famiglia→porzione adulto, categoria pasto multi-selezione, flag arrotondamento a pezzo)
-- [ ] Form composizione menù settimanale (con supporto multi-ricetta per slot) + motore feedback nutrizionale
-- [ ] Generazione automatica lista della spesa
-- [ ] Vista/grafica menù settimanale (stile rimandato, da definire dopo i test di logica)
-- [ ] Vista lista spesa con checkbox + voci extra manuali
-- [ ] Test con dati reali e verifica calcoli
+- [x] Setup Supabase, schema, RLS
+- [x] Autenticazione 2 utenti
+- [x] Conversione a SPA
+- [x] Libretto ricette: visualizza, crea, modifica, elimina
+- [x] Composizione menù settimanale (multi-ricetta per slot)
+- [x] Generazione lista della spesa + voci manuali
+- [x] Motore di feedback nutrizionale (soglie CREA/WCRF)
+- [x] Stile grafico completo su tutte le viste + Home ridisegnata
+- [x] Esportazione PDF del menù settimanale a griglia
+- [x] Pubblicazione su GitHub Pages — **app online e in uso reale**
 
-## Prossimi passi immediati
-1. Decidere se creare un nuovo progetto Supabase dedicato o riusare quello di
-   "Spese Familiari" con nuove tabelle
-2. Setup tabelle e struttura dati su Supabase
-3. Autenticazione 2 utenti
+## Prossimi passi possibili (da confermare con Gioele quando riprende)
+1. Favicon/icona app per la schermata home del telefono
+2. Eventuale PDF della lista della spesa
+3. Bug fix e rifiniture emersi dall'uso reale con Giovanna
+4. Eventuale storico menù passati

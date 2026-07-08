@@ -100,9 +100,13 @@ h3,
 /* Fascia colorata in cima a ogni card-giorno (sostituisce la vecchia
    barra sottile .accento-giorno): contiene il nome del giorno in bianco,
    colorata secondo COLORI_GIORNO, puro accento visivo per orientarsi
-   tra i 7 giorni. */
+   tra i 7 giorni. Ora è anche l'"intestazione" cliccabile dell'accordion:
+   cursor:pointer e user-select:none la fanno sembrare un elemento
+   interattivo invece di semplice testo. */
 .fascia-giorno {
     padding: 14px 20px;
+    cursor: pointer;
+    user-select: none;
 }
 
 .fascia-giorno .nome-giorno {
@@ -112,6 +116,29 @@ h3,
     font-size: 26px;
     color: #FFFFFF;
     margin: 0;
+}
+
+/* Corpo di un giorno (le etichette pasto, i badge ricette, i link
+   aggiungi): nascosto di default, l'accordion lo mostra aggiungendo la
+   classe "aperto" via JavaScript al click sulla fascia corrispondente. */
+.corpo-giorno {
+    display: none;
+}
+
+.corpo-giorno.aperto {
+    display: block;
+}
+
+/* Freccina che indica se il giorno è aperto o chiuso: ruota di 180°
+   (da ▾ verso l'alto) quando la fascia ha la classe "espansa", con una
+   piccola transizione per un effetto morbido invece di uno scatto secco. */
+.icona-freccia-giorno {
+    float: right;
+    transition: transform 0.2s ease;
+}
+
+.fascia-giorno.espansa .icona-freccia-giorno {
+    transform: rotate(180deg);
 }
 
 /* Link "+ Aggiungi" per aprire il form inline di un pasto: stile a

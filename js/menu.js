@@ -181,9 +181,28 @@ async function generaGriglia() {
 
     grigliaMenu.innerHTML = '';
 
+    // Per capire quale giorno è "oggi" dentro la settimana mostrata,
+    // confrontiamo la data odierna con la data di ciascuno dei 7 giorni
+    // (lunedì della settimana + indice giorni), entrambe come stringhe
+    // "YYYY-MM-DD": se coincidono, quel giorno è quello corrente e
+    // l'accordion deve partire già aperto solo per lui.
+    const oggiISO = formattaDataISO(new Date());
+    const lunediSettimana = parseDataISO(settimanaInizioCorrente);
+
     GIORNI.forEach((giorno, indice) => {
+        const dataDiQuestoGiorno = new Date(lunediSettimana);
+        dataDiQuestoGiorno.setDate(lunediSettimana.getDate() + indice);
+        const eGiornoCorrente = formattaDataISO(dataDiQuestoGiorno) === oggiISO;
+
+        // "corpo-giorno" è il contenitore che l'accordion mostra/nasconde
+        // (vedi css/style.css: display:none, diventa "block" con la
+        // classe "aperto"); data-giorno lo collega alla fascia
+        // corrispondente quando l'utente clicca per aprirlo/chiuderlo.
+        // Riusiamo lo stesso div che già faceva da "card-body" invece di
+        // aggiungere un ulteriore livello di nidificazione HTML.
         const corpoCard = document.createElement('div');
-        corpoCard.className = 'card-body';
+        corpoCard.className = 'card-body corpo-giorno' + (eGiornoCorrente ? ' aperto' : '');
+        corpoCard.dataset.giorno = giorno.chiave;
 
         PASTI.forEach((pasto) => {
             const chiaveCella = `${giorno.chiave}_${pasto.chiave}`;
@@ -197,11 +216,19 @@ async function generaGriglia() {
         // visivo per orientarsi scorrendo la griglia, senza nessun
         // legame con il contenuto del menù di quel giorno. Il nome del
         // giorno ora sta dentro questa fascia (invece che nel corpo
-        // della card), come <p class="nome-giorno">.
+        // della card), come <p class="nome-giorno">. È anche
+        // l'intestazione cliccabile dell'accordion: data-giorno-target
+        // dice al click listener delegato quale corpo-giorno aprire, e
+        // la classe "espansa" (già presente se è il giorno corrente)
+        // ruota la freccina verso l'alto.
         const fascia = document.createElement('div');
-        fascia.className = 'fascia-giorno';
+        fascia.className = 'fascia-giorno' + (eGiornoCorrente ? ' espansa' : '');
+        fascia.dataset.giornoTarget = giorno.chiave;
         fascia.style.backgroundColor = COLORI_GIORNO[indice];
-        fascia.innerHTML = `<p class="nome-giorno">${giorno.etichetta}</p>`;
+        fascia.innerHTML = `
+            <p class="nome-giorno">${giorno.etichetta}</p>
+            <span class="icona-freccia-giorno">▾</span>
+        `;
 
         const cardGiorno = document.createElement('div');
         cardGiorno.className = 'card card-giorno mb-3';
@@ -390,7 +417,32 @@ async function rimuoviVoceMenu(id) {
 // l'innerHTML), sarebbe scomodo ricollegare listener singoli a ogni
 // bottone. Con la delega, event.target.closest(...) ci dice su quale
 // bottone specifico (dentro quale cella) l'utente ha cliccato.
+//
+// Il click sulla fascia colorata (apri/chiudi accordion) è gestito qui
+// dentro, invece che con un secondo addEventListener a parte: questo
+// listener sulla griglia viene registrato UNA SOLA VOLTA, a questo
+// punto del file, quando lo script viene caricato — non dentro
+// generaGriglia(), che invece gira ogni volta che si cambia settimana o
+// si aggiunge/rimuove una ricetta. Se registrassimo un listener per la
+// fascia dentro generaGriglia(), ad ogni rigenerazione della griglia se
+// ne accumulerebbe uno nuovo sopra ai precedenti (mai rimossi), e un
+// singolo click finirebbe per scattare più volte.
 grigliaMenu.addEventListener('click', async (event) => {
+    const fasciaCliccata = event.target.closest('.fascia-giorno');
+    if (fasciaCliccata) {
+        // Troviamo il corpo-giorno con lo stesso "nome giorno" salvato
+        // nella fascia (data-giorno-target) e ne alterniamo (toggle) la
+        // visibilità, insieme alla rotazione della freccina sulla fascia.
+        const corpoGiorno = grigliaMenu.querySelector(
+            `.corpo-giorno[data-giorno="${fasciaCliccata.dataset.giornoTarget}"]`
+        );
+        if (corpoGiorno) {
+            corpoGiorno.classList.toggle('aperto');
+            fasciaCliccata.classList.toggle('espansa');
+        }
+        return;
+    }
+
     const bottoneMostraForm = event.target.closest('.btn-mostra-form-aggiungi');
     if (bottoneMostraForm) {
         const formInline = bottoneMostraForm.nextElementSibling;
