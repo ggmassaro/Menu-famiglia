@@ -1,6 +1,7 @@
 import { supabase } from './supabase-config.js';
 import { mostraVista } from './router.js';
 import { COLORI_CATEGORIA_ALIMENTARE } from './stile.js';
+import { cercaSuggerimento } from './suggerimenti-ingredienti.js';
 
 // --- Riferimenti agli elementi fissi della pagina ---
 const form = document.getElementById('form-nuova-ricetta');
@@ -109,11 +110,91 @@ function collegaEventiRiga(riga) {
     const selectTipo = riga.querySelector('.select-tipo-quantita');
     const inputQuantita = riga.querySelector('.input-quantita');
     const bottoneRimuovi = riga.querySelector('.btn-rimuovi-ingrediente');
+    const inputNome = riga.querySelector('.input-nome-ingrediente');
+    const spanSuggerimento = riga.querySelector('.suggerimento-quantita');
 
     selectTipo.addEventListener('change', () => aggiornaCalcoloRiga(riga));
     inputQuantita.addEventListener('input', () => aggiornaCalcoloRiga(riga));
 
     bottoneRimuovi.addEventListener('click', () => rimuoviRiga(riga));
+
+    // Suggerimento automatico di quantità (vedi js/suggerimenti-ingredienti.js):
+    // si aggiorna ad ogni carattere digitato nel nome ingrediente, e si
+    // applica alla riga con un click sullo span del suggerimento stesso.
+    inputNome.addEventListener('input', () => aggiornaSuggerimentoRiga(riga));
+    spanSuggerimento.addEventListener('click', () => applicaSuggerimentoRiga(riga));
+}
+
+// ==========================================================
+// SUGGERIMENTO AUTOMATICO DI QUANTITÀ
+// ==========================================================
+
+// Richiamata ad ogni carattere digitato nel nome ingrediente di UNA riga:
+// cerca un suggerimento nel dizionario e lo mostra (o nasconde) nello
+// span dedicato di quella stessa riga.
+function aggiornaSuggerimentoRiga(riga) {
+    const inputNome = riga.querySelector('.input-nome-ingrediente');
+    const spanSuggerimento = riga.querySelector('.suggerimento-quantita');
+
+    // Le categorie pasto (pranzo/cena/...) sono spuntate una sola volta
+    // per l'intera ricetta, nel form generale, non riga per riga: le
+    // leggiamo da lì per capire quale grammatura proporre.
+    const categoriePasto = Array.from(
+        document.querySelectorAll('input[name="categoria-pasto"]:checked')
+    ).map((checkbox) => checkbox.value);
+
+    const suggerimento = cercaSuggerimento(inputNome.value, categoriePasto);
+
+    if (!suggerimento) {
+        // Nessuna corrispondenza (o campo vuoto): nessun messaggio da
+        // mostrare, e ripuliamo eventuali dati di un suggerimento
+        // precedente rimasto attaccato allo span (altrimenti un click
+        // "vecchio" applicherebbe valori ormai non più corretti).
+        spanSuggerimento.textContent = '';
+        delete spanSuggerimento.dataset.quantita;
+        delete spanSuggerimento.dataset.unita;
+        delete spanSuggerimento.dataset.arrotonda;
+        return;
+    }
+
+    // Salviamo i valori suggeriti come data-attribute sullo span stesso:
+    // ci serviranno al momento del click, in applicaSuggerimentoRiga.
+    spanSuggerimento.textContent = `Suggerito dal tuo piano: ${suggerimento.quantita} ${suggerimento.unita} (clicca per usare)`;
+    spanSuggerimento.dataset.quantita = suggerimento.quantita;
+    spanSuggerimento.dataset.unita = suggerimento.unita;
+    spanSuggerimento.dataset.arrotonda = suggerimento.arrotonda;
+}
+
+// Richiamata al click sullo span del suggerimento: copia i valori
+// suggeriti nei campi veri della riga (quantità, unità, ed eventualmente
+// il checkbox arrotonda per le uova), poi svuota il suggerimento perché
+// è stato "usato". Il suggerimento resta comunque facoltativo: l'utente
+// può sempre modificare a mano il valore anche dopo averlo applicato.
+function applicaSuggerimentoRiga(riga) {
+    const spanSuggerimento = riga.querySelector('.suggerimento-quantita');
+
+    if (!spanSuggerimento.dataset.quantita) {
+        return; // niente suggerimento attivo su questa riga: non facciamo nulla
+    }
+
+    riga.querySelector('.input-quantita').value = spanSuggerimento.dataset.quantita;
+    riga.querySelector('.select-unita').value = spanSuggerimento.dataset.unita;
+
+    if (spanSuggerimento.dataset.arrotonda === 'true') {
+        riga.querySelector('.checkbox-arrotonda').checked = true;
+    }
+
+    // Il valore di input-quantita è cambiato via JavaScript (non con una
+    // digitazione dell'utente), quindi il listener "input" collegato in
+    // collegaEventiRiga non scatta da solo: richiamiamo qui il calcolo,
+    // così l'anteprima "famiglia -> porzione adulto" resta coerente.
+    aggiornaCalcoloRiga(riga);
+
+    // Il suggerimento è stato usato: svuotiamo testo e dati salvati.
+    spanSuggerimento.textContent = '';
+    delete spanSuggerimento.dataset.quantita;
+    delete spanSuggerimento.dataset.unita;
+    delete spanSuggerimento.dataset.arrotonda;
 }
 
 // Genera il markup HTML di una riga ingrediente vuota, con un data-riga-id
@@ -126,6 +207,7 @@ function creaHtmlRiga(id) {
         <div class="row g-2 align-items-center riga-ingrediente riga-ingrediente-stile" data-riga-id="${id}">
             <div class="col-md-3">
                 <input type="text" class="form-control form-control-sm input-nome-ingrediente" placeholder="Nome ingrediente">
+                <span class="small text-muted suggerimento-quantita" style="display:block; cursor:pointer;"></span>
             </div>
             <div class="col-md-2">
                 <select class="form-select form-select-sm select-tipo-quantita">
