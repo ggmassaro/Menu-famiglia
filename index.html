@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menù Famiglia</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@1,600;1,700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- ============================================================
+         NAV PRINCIPALE
+         Visibile solo quando c'è un utente loggato: viene mostrato/
+         nascosto via JavaScript da js/router.js (mai con CSS statico).
+    ============================================================= -->
+    <nav id="nav-principale" class="navbar navbar-light bg-light border-bottom mb-4" style="display: none;">
+        <div class="container d-flex justify-content-between align-items-center">
+            <span class="navbar-brand mb-0 h1">Menù Famiglia</span>
+            <div>
+                <span id="utente-loggato" class="text-muted me-3"></span>
+                <button id="btn-logout" class="btn btn-outline-secondary btn-sm">Esci</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- ============================================================
+             VISTA: LOGIN
+             Contiene lo stesso form che prima era in login.html.
+        ============================================================= -->
+        <div id="vista-login" class="vista">
+            <div class="d-flex align-items-center justify-content-center" style="min-height: 80vh;">
+                <div class="card p-4 shadow-sm" style="max-width: 400px; width: 100%;">
+                    <h1 class="h4 mb-3 text-center">Menù Famiglia</h1>
+                    <p class="text-muted text-center mb-4">Accedi con le tue credenziali</p>
+
+                    <form id="form-login">
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" required>
+                        </div>
+                        <button type="submit" class="btn btn-azione w-100">Accedi</button>
+                    </form>
+
+                    <p id="messaggio-errore" class="text-danger mt-3 mb-0" style="display: none;"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             VISTA: HOME
+             Contiene quello che prima era il contenuto di index.html.
+        ============================================================= -->
+        <div id="vista-home" class="vista py-4">
+            <!-- js/router.js scrive qui l'esito del test di connessione a
+                 Supabase: l'elemento deve restare nel DOM (solo nascosto
+                 con "d-none"), altrimenti quel codice darebbe errore. -->
+            <p id="test-connessione" class="d-none"></p>
+
+            <p id="saluto-home" class="saluto-home">Ciao</p>
+            <p class="sottotitolo-home">Cosa vuoi organizzare oggi?</p>
+
+            <!-- Le tre card sotto hanno data-vista: il click delegato
+                 globale già presente in js/router.js le rende cliccabili
+                 senza bisogno di nuovi event listener. -->
+            <div id="card-menu-home" class="card-home-hero" data-vista="menu">
+                <span class="numero-decorativo-grande">01</span>
+                <p class="card-home-titolo">Menù Settimanale</p>
+                <p class="card-home-sottotitolo">Componi i pasti della settimana</p>
+            </div>
+
+            <div class="riga-card-secondarie">
+                <div id="card-ricette-home" class="card-home-secondaria" data-vista="ricette">
+                    <span class="numero-decorativo-medio">02</span>
+                    <p class="card-home-titolo">Ricette</p>
+                    <p class="card-home-sottotitolo">Sfoglia e crea</p>
+                </div>
+                <div id="card-spesa-home" class="card-home-secondaria" data-vista="lista-spesa">
+                    <span class="numero-decorativo-medio">03</span>
+                    <p class="card-home-titolo">Lista Spesa</p>
+                    <p class="card-home-sottotitolo">Genera e spunta</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             VISTA: RICETTE
+             Contiene quello che prima era in ricette.html.
+        ============================================================= -->
+        <div id="vista-ricette" class="vista py-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <button type="button" class="btn-torna-indietro" data-vista="home">
+                    &larr; Torna alla home
+                </button>
+                <button type="button" class="btn btn-azione btn-sm" data-vista="nuova-ricetta">
+                    + Nuova ricetta
+                </button>
+            </div>
+
+            <h1 class="mb-3">Libretto Ricette</h1>
+
+            <p id="messaggio-caricamento" class="text-muted">Caricamento ricette in corso...</p>
+
+            <div id="filtri-categoria" class="d-flex gap-2 flex-wrap mb-3"></div>
+
+            <div id="contenitore-ricette" class="row g-3"></div>
+        </div>
+
+        <!-- ============================================================
+             VISTA: NUOVA RICETTA
+             Contiene quello che prima era in nuova-ricetta.html.
+        ============================================================= -->
+        <div id="vista-nuova-ricetta" class="vista py-4">
+            <button type="button" class="btn-torna-indietro mb-3" data-vista="ricette">
+                &larr; Torna al libretto ricette
+            </button>
+
+            <div class="card-form-ricetta">
+            <h1 class="h3 mb-3" id="titolo-form-ricetta">Nuova Ricetta</h1>
+
+            <form id="form-nuova-ricetta">
+                <div class="mb-3">
+                    <label for="input-nome" class="form-label etichetta-campo">Nome ricetta</label>
+                    <input type="text" class="form-control" id="input-nome" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label d-block etichetta-campo">Categoria pasto</label>
+                    <!-- "contenitore-chip" (display:flex + gap, vedi css/style.css)
+                         sostituisce le classi Bootstrap "form-check"/"form-check-inline",
+                         che riservavano uno spazio pensato per una checkbox nativa
+                         visibile (qui nascosta da "input-chip") più un margine extra:
+                         risultato, uno spazio vuoto eccessivo tra una chip e l'altra. -->
+                    <div class="contenitore-chip">
+                        <input class="form-check-input input-chip" type="checkbox" name="categoria-pasto" value="colazione" id="pasto-colazione">
+                        <label class="form-check-label chip-scelta" for="pasto-colazione">Colazione</label>
+                        <input class="form-check-input input-chip" type="checkbox" name="categoria-pasto" value="spuntino" id="pasto-spuntino">
+                        <label class="form-check-label chip-scelta" for="pasto-spuntino">Spuntino</label>
+                        <input class="form-check-input input-chip" type="checkbox" name="categoria-pasto" value="pranzo" id="pasto-pranzo">
+                        <label class="form-check-label chip-scelta" for="pasto-pranzo">Pranzo</label>
+                        <input class="form-check-input input-chip" type="checkbox" name="categoria-pasto" value="merenda" id="pasto-merenda">
+                        <label class="form-check-label chip-scelta" for="pasto-merenda">Merenda</label>
+                        <input class="form-check-input input-chip" type="checkbox" name="categoria-pasto" value="cena" id="pasto-cena">
+                        <label class="form-check-label chip-scelta" for="pasto-cena">Cena</label>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="input-categoria-alimentare" class="form-label etichetta-campo">Categoria alimentare</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <span id="pallino-categoria-alimentare" class="pallino-anteprima-categoria"></span>
+                        <select class="form-select" id="input-categoria-alimentare">
+                            <option value="carne_rossa">Carne rossa</option>
+                            <option value="carne_bianca">Carne bianca</option>
+                            <option value="pesce">Pesce</option>
+                            <option value="legumi">Legumi</option>
+                            <option value="formaggi_uova">Formaggi e Uova</option>
+                            <option value="verdura">Verdura</option>
+                            <option value="cereali">Cereali</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label d-block etichetta-campo">Adatto a</label>
+                    <div class="contenitore-chip">
+                        <input class="form-check-input input-chip" type="radio" name="adatto-a" value="adulti" id="adatto-adulti" checked>
+                        <label class="form-check-label chip-scelta" for="adatto-adulti">Adulti</label>
+                        <input class="form-check-input input-chip" type="radio" name="adatto-a" value="bambini" id="adatto-bambini">
+                        <label class="form-check-label chip-scelta" for="adatto-bambini">Bambini</label>
+                        <input class="form-check-input input-chip" type="radio" name="adatto-a" value="tutti" id="adatto-tutti">
+                        <label class="form-check-label chip-scelta" for="adatto-tutti">Tutti</label>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="input-note" class="form-label etichetta-campo">Note</label>
+                    <textarea class="form-control" id="input-note" rows="2"></textarea>
+                </div>
+
+                <hr>
+
+                <h2 class="h5">Ingredienti</h2>
+                <p class="small text-muted">
+                    Inserisci la quantità già calcolata "per 1 porzione adulto", oppure la quantità
+                    "per tutta la famiglia": in quel caso il programma calcola da solo la quantità
+                    per porzione adulto.
+                </p>
+
+                <button type="button" id="btn-aggiungi-ingrediente" class="btn btn-azione btn-sm mb-2">
+                    + Aggiungi ingrediente
+                </button>
+                <p id="avviso-ingredienti" class="text-danger small" style="display: none;">
+                    Deve restare almeno un ingrediente nella ricetta.
+                </p>
+
+                <div id="contenitore-ingredienti" class="mb-3">
+                    <div class="row g-2 align-items-center mb-2 riga-ingrediente" data-riga-id="1">
+                        <div class="col-md-3">
+                            <input type="text" class="form-control input-nome-ingrediente" placeholder="Nome ingrediente">
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select select-tipo-quantita">
+                                <option value="per_porzione" selected>Già per porzione adulto</option>
+                                <option value="per_famiglia">Per tutta la famiglia</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" step="0.1" class="form-control input-quantita" placeholder="Quantità">
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select select-unita">
+                                <option value="g">g</option>
+                                <option value="ml">ml</option>
+                                <option value="pezzi">pezzi</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-check">
+                                <input class="form-check-input checkbox-arrotonda" type="checkbox" id="arrotonda-1">
+                                <label class="form-check-label small" for="arrotonda-1">Arrotonda a pezzo intero</label>
+                            </div>
+                        </div>
+                        <div class="col-md-1 text-end">
+                            <button type="button" class="btn btn-outline-danger btn-sm btn-rimuovi-ingrediente">Rimuovi</button>
+                        </div>
+                        <div class="col-12">
+                            <span class="small text-muted span-calcolo-porzione"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-azione" id="btn-submit-ricetta">Salva ricetta</button>
+            </form>
+            </div>
+
+            <p id="messaggio-salvataggio" class="mt-3" style="display: none;"></p>
+        </div>
+
+        <!-- ============================================================
+             VISTA: MENÙ SETTIMANALE
+        ============================================================= -->
+        <div id="vista-menu" class="vista py-4">
+            <button type="button" class="btn-torna-indietro mb-3" data-vista="home">
+                &larr; Torna alla home
+            </button>
+
+            <h1 class="h3 mb-3">Menù Settimanale</h1>
+
+            <div class="mb-4">
+                <label for="selettore-settimana" class="form-label">
+                    Scegli un giorno della settimana da visualizzare
+                </label>
+                <input type="date" class="form-control" id="selettore-settimana" style="max-width: 220px;">
+            </div>
+
+            <!-- "btn" oltre a "btn-azione" per coerenza con tutti gli altri
+                 bottoni d'azione dell'app (padding/cursor di Bootstrap). -->
+            <button type="button" id="btn-stampa-menu" class="btn btn-azione btn-sm mb-4">Scarica PDF del menù</button>
+
+            <div id="legenda-persone" class="mb-4 mt-2"></div>
+
+            <div id="griglia-menu"></div>
+
+            <hr>
+
+            <h2 class="h5">Riepilogo Nutrizionale della Settimana</h2>
+            <p class="small text-muted fst-italic">
+                Le soglie mostrate sono indicazioni generali orientative per un adulto medio, basate sulle Linee Guida CREA per una Sana Alimentazione e sulle raccomandazioni del World Cancer Research Fund. Non sono un consiglio medico personalizzato, specialmente per le bambine: per indicazioni specifiche rivolgersi a un pediatra o nutrizionista.
+            </p>
+
+            <div id="riepilogo-nutrizionale"></div>
+        </div>
+
+        <!-- ============================================================
+             VISTA: LISTA DELLA SPESA
+        ============================================================= -->
+        <div id="vista-lista-spesa" class="vista py-4">
+            <button type="button" class="btn-torna-indietro mb-3" data-vista="home">
+                &larr; Torna alla home
+            </button>
+
+            <h1 class="h3 mb-3">Lista della Spesa</h1>
+
+            <div class="mb-3">
+                <label for="selettore-settimana-spesa" class="form-label">
+                    Scegli un giorno della settimana da visualizzare
+                </label>
+                <input type="date" class="form-control" id="selettore-settimana-spesa" style="max-width: 220px;">
+            </div>
+
+            <button type="button" id="btn-genera-lista" class="btn btn-azione mb-4">
+                Genera/Aggiorna lista dal menù
+            </button>
+
+            <h2 class="h5">Ingredienti dal menù</h2>
+            <div id="lista-spesa-generata" class="card-lista-spesa mb-4"></div>
+
+            <h2 class="h5">Voci aggiunte a mano</h2>
+            <div class="input-group mb-3" style="max-width: 480px;">
+                <input type="text" class="form-control" id="input-voce-manuale" placeholder="Aggiungi voce manuale, es. Detersivo piatti">
+                <button type="button" id="btn-aggiungi-manuale" class="btn btn-azione btn-sm">Aggiungi</button>
+            </div>
+            <div id="lista-spesa-manuale" class="card-lista-spesa"></div>
+        </div>
+
+    </div>
+
+    <!-- Overlay bianco mostrato SOLO durante la generazione del PDF del
+         menù (vedi js/stampa-menu.js): copre visivamente il contenuto
+         temporaneo usato per "fotografare" la tabella, che nel frattempo
+         viene renderizzato normalmente dal browser dentro l'area visibile
+         dello schermo (necessario perché html2canvas, usato internamente
+         da html2pdf, non riesce a catturare correttamente un elemento
+         posizionato molto fuori dallo schermo, es. left:-9999px). -->
+    <div id="overlay-generazione-pdf" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#FFFFFF; z-index:9999; align-items:center; justify-content:center; font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; color:#2B2420;">
+        Generazione PDF in corso...
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script type="module" src="js/supabase-config.js"></script>
+    <script type="module" src="js/stile.js"></script>
+    <script type="module" src="js/ricette.js"></script>
+    <script type="module" src="js/nuova-ricetta.js"></script>
+    <script type="module" src="js/nutrizione.js"></script>
+    <script type="module" src="js/stampa-menu.js"></script>
+    <script type="module" src="js/menu.js"></script>
+    <script type="module" src="js/lista-spesa.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/router.js"></script>
+</body>
+</html>

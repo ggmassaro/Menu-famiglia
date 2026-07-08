@@ -1,0 +1,561 @@
+/* Gestione delle "viste" della Single Page Application:
+   di default ogni vista è nascosta, e viene mostrata solo quando
+   js/router.js le aggiunge la classe "attiva". */
+.vista {
+    display: none;
+}
+
+.vista.attiva {
+    display: block;
+}
+
+/* ============================================================
+   STILE GRAFICO GENERALE DELL'APP (palette + font)
+   ============================================================ */
+
+/* Sfondo della pagina: verde salvia di base con 4 macchie di colore
+   molto tenui (10% e 8% di opacità) nei quattro angoli, che sfumano nel
+   verde salvia senza bordi netti ("transparent" come ultimo stop).
+   Sono gli stessi colori già usati altrove nell'app (corallo, indaco,
+   rosa, verde acqua d'azione), non colori nuovi né immagini: solo un
+   tocco di profondità in più rispetto al colore piatto di prima.
+   "background-attachment: fixed" fa sì che le macchie restino ancorate
+   alla finestra invece di scorrere via con il contenuto della pagina.
+   Testo scuro caldo e Plus Jakarta Sans come font principale invariati. */
+body {
+    background:
+        radial-gradient(circle at 15% 20%, rgba(255, 111, 60, 0.10), transparent 40%),
+        radial-gradient(circle at 85% 15%, rgba(108, 60, 233, 0.08), transparent 40%),
+        radial-gradient(circle at 80% 85%, rgba(233, 30, 140, 0.08), transparent 45%),
+        radial-gradient(circle at 20% 80%, rgba(0, 191, 166, 0.08), transparent 40%),
+        #F3F6F1;
+    background-attachment: fixed;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: #2B2420;
+}
+
+/* I titoli (e il titolo dell'app nel nav, .navbar-brand) usano invece
+   Fraunces, un font "serif" più espressivo, in corsivo e semi-bold: dà
+   personalità all'app senza bisogno di immagini o icone. */
+h1,
+h2,
+h3,
+.navbar-brand {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 600;
+    color: #2B2420;
+}
+
+/* ============================================================
+   VISTA LIBRETTO RICETTE: card con barra colorata e chip di filtro
+   ============================================================ */
+
+/* Card ricetta: angoli più morbidi, ombra leggera invece del bordo
+   grigio di default di Bootstrap, e "overflow: hidden" per far sì che
+   la barra colorata (vedi .card-ricetta-barra) rispetti gli angoli
+   arrotondati invece di sporgere agli spigoli. */
+.card-ricetta {
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(43, 36, 32, 0.08);
+    overflow: hidden;
+    border: none;
+}
+
+/* Barra sottile in cima alla card, colorata in base alla categoria
+   alimentare della ricetta: un secondo indizio visivo oltre al badge,
+   utile per riconoscere la categoria anche solo scorrendo la pagina. */
+.card-ricetta-barra {
+    height: 6px;
+}
+
+/* Chip cliccabili per filtrare le ricette per categoria alimentare. */
+.chip-filtro {
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Chip attualmente selezionata: sfondo scuro pieno, ben distinguibile
+   dalle altre chip non attive. */
+.chip-filtro.attivo {
+    background-color: #2B2420 !important;
+    color: #FFFFFF !important;
+    border-color: #2B2420 !important;
+}
+
+/* ============================================================
+   VISTA MENÙ SETTIMANALE: card giorno con accento colorato,
+   etichette pasto, link aggiungi/rimuovi e legenda persone
+   ============================================================ */
+
+/* Card di ogni giorno: stesso trattamento "morbido" delle card ricetta
+   (angoli arrotondati, ombra leggera, nessun bordo grigio). */
+.card-giorno {
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(43, 36, 32, 0.08);
+    overflow: hidden;
+    border: none;
+}
+
+/* Fascia colorata in cima a ogni card-giorno (sostituisce la vecchia
+   barra sottile .accento-giorno): contiene il nome del giorno in bianco,
+   colorata secondo COLORI_GIORNO, puro accento visivo per orientarsi
+   tra i 7 giorni. */
+.fascia-giorno {
+    padding: 14px 20px;
+}
+
+.fascia-giorno .nome-giorno {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 26px;
+    color: #FFFFFF;
+    margin: 0;
+}
+
+/* Link "+ Aggiungi" per aprire il form inline di un pasto: stile a
+   link colorato invece di un bottone bordato, più leggero visivamente.
+   Il colore vero e proprio (var(--colore-sezione, ...)) è dichiarato
+   più sotto, insieme alle altre regole che dipendono dalla sezione. */
+.link-aggiungi-pasto {
+    font-weight: 600;
+    font-size: 13px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Link "Rimuovi" di una voce di menù già assegnata. */
+.link-rimuovi-pasto {
+    color: #B5453A;
+    font-size: 12px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Nome del pasto (Colazione, Pranzo, ...) sopra l'elenco delle ricette
+   assegnate: più marcato del semplice testo muted usato prima. */
+.etichetta-pasto {
+    font-weight: 700;
+    font-size: 13px;
+    color: #2B2420;
+    margin-bottom: 5px;
+}
+
+/* Pallini persona affiancati al badge ricetta, leggermente sovrapposti
+   (margin-left negativo) con un bordo bianco che li separa visivamente
+   l'uno dall'altro, come tanti piccoli "avatar" impilati. */
+.pallino-persona-in-chip {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1.5px solid #fff;
+    display: inline-block;
+    margin-left: -8px;
+}
+
+.pallino-persona-in-chip:first-of-type {
+    margin-left: 0;
+}
+
+/* Riquadro "legenda" con un pallino colorato per persona, per ricordare
+   a colpo d'occhio quale colore corrisponde a quale persona. */
+.legenda-persone {
+    background: #fff;
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: inline-flex;
+    gap: 14px;
+    box-shadow: 0 2px 8px rgba(43, 36, 32, 0.06);
+    flex-wrap: wrap;
+}
+
+/* ============================================================
+   COLORE D'AZIONE PER SEZIONE (variabili CSS / custom properties)
+   ============================================================
+   Le variabili CSS (--nome-variabile) funzionano come una specie di
+   "scatola" di valore dichiarata su un elemento: quell'elemento e TUTTI
+   i suoi discendenti nel DOM possono leggerla con var(--nome-variabile),
+   perché le custom properties sono ereditate lungo l'albero HTML esattamente
+   come "color" o "font-family". Qui dichiariamo --colore-sezione e
+   --testo-sezione direttamente sui 4 contenitori di vista: ogni bottone
+   .btn-azione, ogni checkbox e ogni link "+ Aggiungi" DENTRO quella vista
+   erediterà quindi automaticamente il colore giusto, senza che il
+   JavaScript o le classi debbano sapere in quale vista si trovano.
+   Se un contenitore non dichiara queste variabili (es. la vista di
+   login, o le card della home che restano fisse), var(--colore-sezione,
+   #00BFA6) usa il secondo valore passato come fallback: il verde acqua
+   di sempre. */
+#vista-menu {
+    --colore-sezione: #1E88C7;
+    --testo-sezione: #FFFFFF;
+}
+
+#vista-ricette,
+#vista-nuova-ricetta {
+    --colore-sezione: #FFC107;
+    --testo-sezione: #2B2420;
+}
+
+#vista-lista-spesa {
+    --colore-sezione: #E91E8C;
+    --testo-sezione: #FFFFFF;
+}
+
+/* Bottoni principali: leggono il colore/testo dalla sezione in cui si
+   trovano; dove non è dichiarata nessuna variabile (es. login), restano
+   verde acqua grazie al fallback. */
+.btn-azione {
+    background-color: var(--colore-sezione, #00BFA6);
+    color: var(--testo-sezione, #FFFFFF);
+    border: none;
+    font-weight: 600;
+    border-radius: 10px;
+}
+
+/* filter: brightness scurisce leggermente QUALSIASI colore al passaggio
+   del mouse, quindi funziona automaticamente con tutti e 4 i colori
+   senza dover scrivere una tonalità "scura" diversa per ognuno. */
+.btn-azione:hover {
+    filter: brightness(0.92);
+}
+
+input[type="checkbox"] {
+    accent-color: var(--colore-sezione, #00BFA6);
+}
+
+/* Bootstrap applica alle checkbox con classe "form-check-input" (quelle
+   usate nella lista della spesa) uno stile molto specifico che vince
+   sulla regola generica "input[type=checkbox]" sopra: questa regola più
+   specifica, con !important, forza comunque il colore della sezione
+   anche su quelle checkbox quando sono spuntate. */
+.form-check-input:checked {
+    background-color: var(--colore-sezione, #00BFA6) !important;
+    border-color: var(--colore-sezione, #00BFA6) !important;
+}
+
+.link-aggiungi-pasto {
+    color: var(--colore-sezione, #00BFA6) !important;
+}
+
+/* Testo di un ingrediente/voce già segnato come "comprato": applicata
+   subito al click della checkbox (aggiornamento ottimistico, prima
+   ancora della risposta di Supabase) e anche al primo caricamento della
+   lista per le voci già segnate come comprate in precedenza. */
+.testo-comprato {
+    text-decoration: line-through;
+    color: #B0AEA8;
+}
+
+/* ============================================================
+   VISTA LISTA DELLA SPESA: card per righe generate e voci manuali
+   ============================================================ */
+
+/* Contenitore "a card" per le righe della lista della spesa (sia quelle
+   generate dal menù, sia le voci manuali): stesso trattamento visivo
+   delle altre card dell'app (angoli arrotondati, ombra leggera). */
+.card-lista-spesa {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(43, 36, 32, 0.08);
+    overflow: hidden;
+}
+
+/* Ogni riga ingrediente/voce dentro la card: padding comodo e un
+   sottile separatore chiaro tra una riga e l'altra, tranne sull'ultima
+   riga (":last-child" per non lasciare un bordo "a vuoto" in fondo). */
+.card-lista-spesa .riga-lista-spesa {
+    padding: 13px 18px;
+    border-bottom: 1px solid #F0EEE8;
+}
+
+.card-lista-spesa .riga-lista-spesa:last-child {
+    border-bottom: none;
+}
+
+/* ============================================================
+   FORM NUOVA/MODIFICA RICETTA: card, etichette, chip e anteprima
+   colore categoria
+   ============================================================ */
+
+/* Contenitore "a card" che avvolge tutto il form, stesso trattamento
+   visivo delle altre card dell'app. */
+.card-form-ricetta {
+    background: #FFFFFF;
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(43, 36, 32, 0.08);
+    padding: 24px;
+}
+
+/* Etichette di campo (Nome ricetta, Categoria pasto, ...): più marcate
+   del semplice "form-label" di Bootstrap. */
+.etichetta-campo {
+    font-weight: 700;
+    font-size: 13px;
+    color: #2B2420;
+    margin-bottom: 6px;
+    display: block;
+}
+
+.form-control,
+.form-select {
+    border-radius: 10px !important;
+    border: 1px solid #E0DED8 !important;
+}
+
+/* Nasconde visivamente il checkbox/radio originale (rimane comunque
+   utilizzabile: il click sul "chip" qui sotto, che ha lo stesso "for"
+   dell'id di questo input, lo attiva regolarmente). Tecnica standard
+   "visually hidden", non "display: none", perché un input nascosto con
+   display:none non riceverebbe comunque focus/attivazione da tastiera. */
+.input-chip {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* "Chip" cliccabile che sostituisce visivamente il checkbox/radio: è
+   in realtà il <label> associato all'input nascosto sopra, quindi
+   cliccandoci sopra si attiva comunque l'input originale.
+   Il margin-right/margin-bottom di prima è stato tolto: la spaziatura
+   tra una chip e l'altra ora la fornisce solo il "gap" del contenitore
+   ".contenitore-chip" che le avvolge, altrimenti si sommerebbe al gap
+   raddoppiando lo spazio invece di correggerlo. */
+.chip-scelta {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: #F0EEE8;
+    color: #6B6B65;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Quando l'input nascosto è selezionato, coloriamo il chip subito dopo
+   di esso (per questo l'input deve stare immediatamente prima del
+   label nel markup, senza altri elementi in mezzo). Come .btn-azione e
+   .link-aggiungi-pasto, legge --colore-sezione/--testo-sezione dal
+   contenitore di vista (qui #vista-nuova-ricetta, quindi giallo) invece
+   del vecchio verde acqua fisso, con lo stesso verde acqua come
+   fallback per qualunque contesto senza quelle variabili dichiarate. */
+.input-chip:checked + .chip-scelta {
+    background: var(--colore-sezione, #00BFA6);
+    color: var(--testo-sezione, #FFFFFF);
+}
+
+/* Pallino che anticipa visivamente il colore della categoria alimentare
+   attualmente selezionata nella tendina, aggiornato via JavaScript. */
+.pallino-anteprima-categoria {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: inline-block;
+}
+
+/* Contenitore delle chip di "Categoria pasto"/"Adatto a": display:flex
+   con gap sostituisce le vecchie classi Bootstrap "form-check"/
+   "form-check-inline", che riservavano spazio per una checkbox nativa
+   (qui nascosta) più un margine extra, causando uno spazio eccessivo. */
+.contenitore-chip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Riga ingrediente dinamica del form ricetta: sfondo leggermente
+   diverso dalla card che la contiene, per distinguerla visivamente
+   come "blocco" a sé, con angoli arrotondati e un po' di respiro. */
+.riga-ingrediente-stile {
+    background: #F8F7F4;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+}
+
+/* Link "Rimuovi" di una riga ingrediente, al posto del bottone
+   Bootstrap bordato. */
+.link-rimuovi-ingrediente {
+    color: #B5453A;
+    font-size: 12px;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   VISTA HOME: saluto personalizzato + card colorate di navigazione
+   ============================================================ */
+
+.saluto-home {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 2.2rem;
+    color: #2B2420;
+    margin-bottom: 4px;
+    line-height: 1.05;
+}
+
+.sottotitolo-home {
+    font-size: 14px;
+    color: #8A8A84;
+    margin-bottom: 20px;
+}
+
+/* Le card della home sono in realtà semplici <div> con data-vista,
+   rese "cliccabili" solo dal cursor:pointer + dal click delegato
+   globale già presente in js/router.js (nessun <button> necessario). */
+.card-home-hero,
+.card-home-secondaria {
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    border: none;
+    text-align: left;
+    width: 100%;
+    display: block;
+}
+
+.card-home-hero {
+    padding: 28px 26px;
+    margin-bottom: 14px;
+}
+
+.card-home-secondaria {
+    padding: 22px 20px;
+}
+
+/* Numeri decorativi in trasparenza, in stile "indice di rivista": puro
+   ornamento, senza nessun significato legato ai dati. */
+.numero-decorativo-grande {
+    position: absolute;
+    top: -18px;
+    right: 6px;
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 110px;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.2);
+}
+
+.numero-decorativo-medio {
+    position: absolute;
+    top: -14px;
+    right: 2px;
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 72px;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.2);
+}
+
+.card-home-titolo {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 700;
+    margin: 0 0 6px;
+    position: relative;
+}
+
+.card-home-sottotitolo {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    margin: 0;
+    position: relative;
+}
+
+/* Card "hero" (grande, in cima): Menù Settimanale */
+#card-menu-home {
+    background: #1E88C7;
+    box-shadow: 0 8px 22px rgba(30, 136, 199, 0.35);
+}
+
+#card-menu-home .card-home-titolo {
+    font-size: 28px;
+    color: #fff;
+}
+
+#card-menu-home .card-home-sottotitolo {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Card secondaria: Ricette */
+#card-ricette-home {
+    background: #FFC107;
+    box-shadow: 0 8px 22px rgba(255, 193, 7, 0.35);
+}
+
+#card-ricette-home .card-home-titolo {
+    font-size: 19px;
+    color: #2B2420;
+}
+
+#card-ricette-home .card-home-sottotitolo {
+    font-size: 12px;
+    color: rgba(43, 36, 32, 0.7);
+}
+
+#card-ricette-home .numero-decorativo-medio {
+    color: rgba(43, 36, 32, 0.15);
+}
+
+/* Card secondaria: Lista Spesa */
+#card-spesa-home {
+    background: #E91E8C;
+    box-shadow: 0 8px 22px rgba(233, 30, 140, 0.35);
+}
+
+#card-spesa-home .card-home-titolo {
+    font-size: 19px;
+    color: #fff;
+}
+
+#card-spesa-home .card-home-sottotitolo {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.riga-card-secondarie {
+    display: flex;
+    gap: 14px;
+}
+
+.riga-card-secondarie > * {
+    flex: 1;
+}
+
+/* ============================================================
+   BOTTONE "TORNA INDIETRO" UNIFICATO
+   ============================================================
+   Sostituisce le varie classi Bootstrap (btn btn-link ps-0 ...) usate
+   finora nei bottoni "← Torna ..." di più viste: stesso aspetto a
+   "pillola" bianca ovunque compaia, invece di uno stile diverso per
+   ogni vista. */
+.btn-torna-indietro {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #FFFFFF;
+    color: #2B2420;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(43, 36, 32, 0.08);
+    text-decoration: none;
+    cursor: pointer;
+}
