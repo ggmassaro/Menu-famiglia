@@ -2,16 +2,24 @@ import { supabase } from './supabase-config.js';
 import { mostraVista } from './router.js';
 import { caricaRicettaPerModifica } from './nuova-ricetta.js';
 import { COLORI_CATEGORIA_ALIMENTARE } from './stile.js';
+import { leggiSelezione, impostaRicettaScelta, pulisciSelezione } from './stato-selezione.js';
 
 const contenitore = document.getElementById('contenitore-ricette');
 const messaggioCaricamento = document.getElementById('messaggio-caricamento');
 const filtriContainer = document.getElementById('filtri-categoria');
+const filtriPastoContainer = document.getElementById('filtri-pasto');
+const bannerSelezione = document.getElementById('banner-selezione-ricetta');
 
 // Ricette attualmente caricate da Supabase, tenute in memoria qui: il
 // filtro per categoria (vedi più sotto) le rilegge direttamente da questa
 // variabile invece di rifare una query ogni volta che si clicca una chip,
 // dato che i dati non cambiano, cambia solo quali ricette mostrare.
 let ricetteCaricate = [];
+
+// Filtri attualmente attivi (categoria alimentare + categoria pasto):
+// una ricetta viene mostrata solo se soddisfa ENTRAMBI (vedi applicaFiltri).
+let filtroCategoriaAttivo = 'tutte';
+let filtroPastoAttivo = 'tutti';
 
 // Piccoli "dizionari" per trasformare i codici salvati nel database
 // (es. "formaggi_uova") in testo leggibile per l'utente (es. "Formaggi e Uova").
@@ -32,10 +40,37 @@ const ETICHETTE_ADATTO_A = {
     tutti: 'Tutti'
 };
 
+// Etichette leggibili per le categorie pasto (usate sia per il secondo
+// gruppo di chip filtro, sia per il testo del banner di selezione) e per
+// i giorni della settimana (usate solo nel banner). Stessa convenzione
+// di ETICHETTE_CATEGORIA_ALIMENTARE sopra.
+const ETICHETTE_CATEGORIA_PASTO = {
+    colazione: 'Colazione',
+    spuntino: 'Spuntino',
+    pranzo: 'Pranzo',
+    merenda: 'Merenda',
+    cena: 'Cena'
+};
+
+const ETICHETTE_GIORNO = {
+    lunedi: 'Lunedì',
+    martedi: 'Martedì',
+    mercoledi: 'Mercoledì',
+    giovedi: 'Giovedì',
+    venerdi: 'Venerdì',
+    sabato: 'Sabato',
+    domenica: 'Domenica'
+};
+
 // Esportata perché ora viene richiamata dal router (js/router.js) ogni
 // volta che l'utente entra nella vista "ricette", invece di partire da
 // sola una sola volta al caricamento dello script.
 export async function caricaRicette() {
+    // Mostriamo (o nascondiamo) subito il banner "stai scegliendo una
+    // ricetta per...": non dipende dai dati delle ricette, solo dallo
+    // stato condiviso in js/stato-selezione.js.
+    generaBannerSelezione();
+
     // La select 'ingredienti(*)' dice a Supabase: per ogni ricetta,
     // includi anche tutte le righe collegate della tabella ingredienti
     // (quelle che hanno ricetta_id uguale all'id di questa ricetta).
@@ -54,9 +89,70 @@ export async function caricaRicette() {
 
     ricetteCaricate = ricette;
 
+    // Ripartiamo sempre con entrambi i filtri "spenti": le chip vengono
+    // rigenerate da zero qui sotto, quindi anche lo stato interno deve
+    // tornare in sincrono con quello che l'utente vede a schermo.
+    filtroCategoriaAttivo = 'tutte';
+    filtroPastoAttivo = 'tutti';
+
     generaFiltriCategoria(ricette);
+    generaFiltriPasto();
+
+    // Flusso a due passi (vedi js/stato-selezione.js e js/menu.js): se
+    // l'utente sta scegliendo una ricetta per un giorno/pasto specifico,
+    // pre-selezioniamo il filtro categoria pasto corrispondente
+    // "simulando" un click sulla chip giusta con .click(), invece di
+    // duplicare qui la logica di filtro: il click fa scattare il
+    // listener già collegato più sotto, che si occupa lui di applicare
+    // i filtri e richiamare mostraRicette().
+    const selezione = leggiSelezione();
+    if (selezione.attivo) {
+        const chipPastoDaAttivare = filtriPastoContainer.querySelector(`[data-pasto="${selezione.tipoPasto}"]`);
+        if (chipPastoDaAttivare) {
+            chipPastoDaAttivare.click();
+            return;
+        }
+    }
+
     mostraRicette(ricette);
 }
+
+// ==========================================================
+// BANNER "STAI SCEGLIENDO UNA RICETTA PER..."
+// ==========================================================
+// Visibile solo durante il flusso a due passi avviato da js/menu.js
+// (vedi js/stato-selezione.js). Ricostruito ad ogni caricaRicette(),
+// così scompare da solo quando non c'è nessuna selezione attiva.
+function generaBannerSelezione() {
+    const selezione = leggiSelezione();
+
+    if (!selezione.attivo) {
+        bannerSelezione.innerHTML = '';
+        return;
+    }
+
+    const etichettaGiorno = ETICHETTE_GIORNO[selezione.giorno] || selezione.giorno;
+    const etichettaPasto = ETICHETTE_CATEGORIA_PASTO[selezione.tipoPasto] || selezione.tipoPasto;
+
+    bannerSelezione.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center alert alert-info py-2 px-3 mb-3">
+            <span>Stai scegliendo una ricetta per <strong>${etichettaGiorno} - ${etichettaPasto}</strong></span>
+            <button type="button" class="btn btn-outline-secondary btn-sm btn-annulla-selezione">Annulla selezione</button>
+        </div>
+    `;
+}
+
+// Un solo listener, collegato una volta sola: il banner viene
+// rigenerato ad ogni caricaRicette(), quindi il bottone "Annulla
+// selezione" cambia elemento DOM ogni volta, ma la delega sul
+// contenitore fisso continua a funzionare senza doverla ricollegare.
+bannerSelezione.addEventListener('click', (event) => {
+    const bottoneAnnullaSelezione = event.target.closest('.btn-annulla-selezione');
+    if (bottoneAnnullaSelezione) {
+        pulisciSelezione();
+        mostraVista('menu');
+    }
+});
 
 // ==========================================================
 // FILTRO PER CATEGORIA ALIMENTARE
@@ -96,21 +192,71 @@ filtriContainer.addEventListener('click', (event) => {
     filtriContainer.querySelectorAll('.chip-filtro').forEach((c) => c.classList.remove('attivo'));
     chip.classList.add('attivo');
 
-    const categoriaScelta = chip.dataset.categoria;
+    // Salviamo la scelta e applichiamo ENTRAMBI i filtri insieme (vedi
+    // applicaFiltri): categoria alimentare e categoria pasto sono
+    // indipendenti, una ricetta deve soddisfarli tutti e due.
+    filtroCategoriaAttivo = chip.dataset.categoria;
+    applicaFiltri();
+});
 
-    // Filtriamo le ricette già in memoria (ricetteCaricate) invece di
-    // interrogare di nuovo Supabase: i dati sono già quelli giusti, cambia
-    // solo il sottoinsieme da mostrare, quindi il filtro è istantaneo e
-    // non genera traffico di rete ad ogni click.
-    const ricetteFiltrate = categoriaScelta === 'tutte'
-        ? ricetteCaricate
-        : ricetteCaricate.filter((ricetta) => ricetta.categoria_alimentare === categoriaScelta);
+// ==========================================================
+// FILTRO PER CATEGORIA PASTO
+// ==========================================================
+// Stessa logica del filtro per categoria alimentare sopra, ma con un
+// elenco fisso di chip (Tutti i pasti + le 5 categorie pasto), non
+// dipendente da quali ricette sono state caricate: a differenza delle
+// categorie alimentari, ha senso poter scegliere "Colazione" anche se al
+// momento non esiste ancora nessuna ricetta di colazione.
+function generaFiltriPasto() {
+    const chipTutti = '<span class="badge chip-filtro bg-light text-dark border attivo" data-pasto="tutti">Tutti i pasti</span>';
+
+    const chipPasti = Object.keys(ETICHETTE_CATEGORIA_PASTO)
+        .map((pasto) => `<span class="badge chip-filtro bg-light text-dark border" data-pasto="${pasto}">${ETICHETTE_CATEGORIA_PASTO[pasto]}</span>`)
+        .join('');
+
+    filtriPastoContainer.innerHTML = chipTutti + chipPasti;
+}
+
+filtriPastoContainer.addEventListener('click', (event) => {
+    const chip = event.target.closest('.chip-filtro');
+    if (!chip) {
+        return;
+    }
+
+    filtriPastoContainer.querySelectorAll('.chip-filtro').forEach((c) => c.classList.remove('attivo'));
+    chip.classList.add('attivo');
+
+    filtroPastoAttivo = chip.dataset.pasto;
+    applicaFiltri();
+});
+
+// Applica insieme i due filtri attualmente attivi (categoria alimentare
+// + categoria pasto) alle ricette già in memoria (ricetteCaricate),
+// invece di interrogare di nuovo Supabase: i dati sono già quelli
+// giusti, cambia solo il sottoinsieme da mostrare, quindi il filtro è
+// istantaneo e non genera traffico di rete ad ogni click. Una ricetta
+// viene mostrata solo se soddisfa ENTRAMBI i filtri (o se un filtro è
+// sulla posizione "tutte"/"tutti", che significa "nessun vincolo").
+function applicaFiltri() {
+    const ricetteFiltrate = ricetteCaricate.filter((ricetta) => {
+        const passaCategoria = filtroCategoriaAttivo === 'tutte'
+            || ricetta.categoria_alimentare === filtroCategoriaAttivo;
+        const passaPasto = filtroPastoAttivo === 'tutti'
+            || ricetta.categoria_pasto.includes(filtroPastoAttivo);
+
+        return passaCategoria && passaPasto;
+    });
 
     mostraRicette(ricetteFiltrate);
-});
+}
 
 function mostraRicette(ricette) {
     contenitore.innerHTML = ''; // svuota il contenitore prima di riempirlo
+
+    // Leggiamo lo stato di selezione una sola volta per tutte le card:
+    // se è attivo (l'utente arriva dal Menù per scegliere una ricetta),
+    // ogni card mostra in più un bottone "Aggiungi qui" ben visibile.
+    const selezione = leggiSelezione();
 
     ricette.forEach((ricetta) => {
         const categoriePasto = ricetta.categoria_pasto.join(', ');
@@ -138,6 +284,14 @@ function mostraRicette(ricette) {
             ? `<p class="text-muted small fst-italic mb-2">${ricetta.note}</p>`
             : '';
 
+        // Bottone "Aggiungi qui": solo durante il flusso a due passi
+        // avviato dal Menù (vedi js/stato-selezione.js). Il click
+        // (gestito più sotto, nel listener delegato) salva quale
+        // ricetta è stata scelta e torna alla vista Menù.
+        const bottoneAggiungiQui = selezione.attivo
+            ? `<button type="button" class="btn btn-azione btn-sm btn-aggiungi-qui-menu" data-id="${ricetta.id}" data-nome="${ricetta.nome}">Aggiungi qui</button>`
+            : '';
+
         const cardHtml = `
             <div class="col-md-6 col-lg-4">
                 <div class="card card-ricetta h-100">
@@ -154,7 +308,8 @@ function mostraRicette(ricette) {
                         <ul class="small mb-0">
                             ${righeIngredienti}
                         </ul>
-                        <div class="d-flex gap-2 mt-2">
+                        <div class="d-flex gap-2 mt-2 flex-wrap">
+                            ${bottoneAggiungiQui}
                             <button type="button" class="btn btn-outline-secondary btn-sm btn-modifica-ricetta" data-id="${ricetta.id}">Modifica</button>
                             <button type="button" class="btn btn-outline-danger btn-sm btn-elimina-ricetta" data-id="${ricetta.id}">Elimina</button>
                         </div>
@@ -168,13 +323,26 @@ function mostraRicette(ricette) {
 }
 
 // ==========================================================
-// AZIONI SULLE CARD: modifica ed elimina ricetta
+// AZIONI SULLE CARD: aggiungi al menù, modifica ed elimina ricetta
 // ==========================================================
 // Un solo listener delegato sul contenitore (collegato una sola volta,
 // al caricamento dello script), invece di uno per ciascun bottone: le
 // card vengono ricreate ogni volta che caricaRicette() gira di nuovo, e
 // bottoni "attaccati" singolarmente andrebbero persi a ogni ricarica.
 contenitore.addEventListener('click', async (event) => {
+    const bottoneAggiungiQui = event.target.closest('.btn-aggiungi-qui-menu');
+    if (bottoneAggiungiQui) {
+        // Salviamo QUALE ricetta è stata scelta (giorno/tipoPasto erano
+        // già stati salvati da js/menu.js prima di mandarci qui) e
+        // torniamo alla vista Menù. NON puliamo la selezione qui: lo fa
+        // js/menu.js, in inizializzaVistaMenu(), subito dopo aver usato
+        // questi dati per aprire il form di scelta persone — vedi il
+        // commento in quel file per il perché di questo ordine.
+        impostaRicettaScelta(bottoneAggiungiQui.dataset.id, bottoneAggiungiQui.dataset.nome);
+        mostraVista('menu');
+        return;
+    }
+
     const bottoneModifica = event.target.closest('.btn-modifica-ricetta');
     if (bottoneModifica) {
         const idRicetta = bottoneModifica.dataset.id;

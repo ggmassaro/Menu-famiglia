@@ -4,6 +4,7 @@ import { inizializzaFormNuovaRicetta } from './nuova-ricetta.js';
 import { inizializzaVistaMenu } from './menu.js';
 import { inizializzaVistaListaSpesa } from './lista-spesa.js';
 import { NOME_DA_EMAIL } from './stile.js';
+import { mostraPromemoriaSeNecessario } from './promemoria-home.js';
 
 // ============================================================
 // RIFERIMENTI AGLI ELEMENTI FISSI DELLA PAGINA (nav e paragrafo
@@ -39,6 +40,17 @@ export function mostraVista(nomeVista) {
     // aperte, perché mostrano dati che possono essere cambiati nel
     // frattempo (nuove ricette salvate) oppure perché il form deve
     // tornare vuoto per un nuovo inserimento.
+    if (nomeVista === 'home') {
+        // Controlla se mostrare il promemoria "pianifica la settimana
+        // prossima" (solo di venerdì, solo se non è già stato fatto).
+        // Questo stesso branch copre sia la primissima apertura della
+        // home (avviaApp() qui sotto chiama mostraVista('home') dopo aver
+        // verificato la sessione) sia ogni rientro successivo nella home
+        // (bottone "Torna alla home", login da js/auth.js, ecc.), perché
+        // tutti passano da questa stessa funzione mostraVista().
+        mostraPromemoriaSeNecessario();
+    }
+
     if (nomeVista === 'ricette') {
         caricaRicette();
     }

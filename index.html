@@ -112,6 +112,10 @@
                     <p class="card-home-sottotitolo">Genera e spunta</p>
                 </div>
             </div>
+
+            <!-- Riempito solo il venerdì, e solo se la settimana prossima
+                 non ha ancora nessun menù pianificato (vedi js/promemoria-home.js) -->
+            <div id="promemoria-settimana" class="mt-3"></div>
         </div>
 
         <!-- ============================================================
@@ -130,9 +134,15 @@
 
             <h1 class="mb-3">Libretto Ricette</h1>
 
+            <!-- Mostrato solo durante il flusso "aggiungi ricetta al
+                 menù" a due passi (vedi js/stato-selezione.js e
+                 js/ricette.js): vuoto in tutti gli altri casi. -->
+            <div id="banner-selezione-ricetta"></div>
+
             <p id="messaggio-caricamento" class="text-muted">Caricamento ricette in corso...</p>
 
             <div id="filtri-categoria" class="d-flex gap-2 flex-wrap mb-3"></div>
+            <div id="filtri-pasto" class="d-flex gap-2 flex-wrap mb-3"></div>
 
             <div id="contenitore-ricette" class="row g-3"></div>
         </div>
@@ -352,6 +362,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script type="module" src="js/supabase-config.js"></script>
     <script type="module" src="js/stile.js"></script>
+    <script type="module" src="js/stato-selezione.js"></script>
     <script type="module" src="js/suggerimenti-ingredienti.js"></script>
     <script type="module" src="js/ricette.js"></script>
     <script type="module" src="js/nuova-ricetta.js"></script>
@@ -359,6 +370,7 @@
     <script type="module" src="js/stampa-menu.js"></script>
     <script type="module" src="js/menu.js"></script>
     <script type="module" src="js/lista-spesa.js"></script>
+    <script type="module" src="js/promemoria-home.js"></script>
     <script type="module" src="js/auth.js"></script>
     <script type="module" src="js/router.js"></script>
 </body>
