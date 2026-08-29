@@ -160,6 +160,29 @@ h3,
     cursor: pointer;
 }
 
+/* Link "Modifica" (persone assegnate) di una voce di menù già assegnata:
+   stesso stile di "Rimuovi" ma nel colore d'azione della sezione Menù,
+   per non essere confuso visivamente con l'azione distruttiva. */
+.link-modifica-pasto {
+    color: var(--colore-sezione, #1E88C7);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Celle della griglia "Ripeti anche in questi pasti": checkbox compatte
+   e centrate, per far stare comodamente 5 colonne (pasti) x 7 righe
+   (giorni) nello spazio stretto del form inline. */
+.griglia-ripeti-pasti td,
+.griglia-ripeti-pasti th {
+    padding: 2px 4px;
+}
+
+.griglia-ripeti-pasti .form-check-input {
+    margin: 0;
+}
+
 /* Nome del pasto (Colazione, Pranzo, ...) sopra l'elenco delle ricette
    assegnate: più marcato del semplice testo muted usato prima. */
 .etichetta-pasto {

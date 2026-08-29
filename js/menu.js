@@ -265,15 +265,104 @@ function creaHtmlVoceMenu(riga) {
         })
         .join('');
 
+    // Contenitore esterno "voce-menu-riga": porta data-id (id della riga
+    // in menu_settimanale, serve sia a "Rimuovi" che a "Modifica"/"Salva")
+    // e data-persone-assegnate (gli id delle persone già assegnate, uniti
+    // da virgola). Questo secondo attributo serve solo al form di modifica
+    // (vedi apriFormModificaPersone più sotto), per sapere quali checkbox
+    // pre-selezionare senza dover tenere una copia separata dei dati di
+    // ogni riga in memoria: leggiamo direttamente dal DOM.
     return `
-        <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1">
-            <span class="d-flex align-items-center">
-                ${badgeRicetta}
-                ${pallinePersone}
-            </span>
-            <span class="link-rimuovi-pasto btn-rimuovi-voce-menu" data-id="${riga.id}">Rimuovi</span>
+        <div class="voce-menu-riga mb-1" data-id="${riga.id}" data-persone-assegnate="${(riga.persone_assegnate || []).join(',')}">
+            <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1">
+                <span class="d-flex align-items-center">
+                    ${badgeRicetta}
+                    ${pallinePersone}
+                </span>
+                <span class="d-flex align-items-center gap-2">
+                    <span class="link-modifica-pasto btn-modifica-voce-menu" data-id="${riga.id}">Modifica</span>
+                    <span class="link-rimuovi-pasto btn-rimuovi-voce-menu" data-id="${riga.id}">Rimuovi</span>
+                </span>
+            </div>
         </div>
     `;
+}
+
+// ==========================================================
+// FUNZIONALITÀ "MODIFICA PERSONE" di una voce di menù già salvata
+// ==========================================================
+// Genera il form inline (checkbox persone + Salva/Annulla) mostrato
+// sotto una voce di menù quando si clicca "Modifica". personeAssegnate
+// è l'array di id persona già letto da data-persone-assegnate: le
+// checkbox corrispondenti partono pre-selezionate.
+function creaHtmlFormModificaPersone(idRiga, personeAssegnate) {
+    const checkboxPersone = elencoPersone
+        .map((persona) => {
+            const idCheckbox = `persona-modifica-${idRiga}-${persona.id}`;
+            const eGiaAssegnata = personeAssegnate.includes(persona.id);
+            return `
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input checkbox-persona-modifica" type="checkbox" value="${persona.id}" id="${idCheckbox}" ${eGiaAssegnata ? 'checked' : ''}>
+                    <label class="form-check-label small" for="${idCheckbox}">${persona.nome}</label>
+                </div>
+            `;
+        })
+        .join('');
+
+    return `
+        <div class="form-modifica-persone mt-1 mb-2">
+            <div class="mb-2">${checkboxPersone}</div>
+            <button type="button" class="btn btn-success btn-sm btn-salva-modifica-persone" data-id="${idRiga}">Salva</button>
+            <button type="button" class="btn btn-secondary btn-sm btn-annulla-modifica-persone">Annulla</button>
+        </div>
+    `;
+}
+
+// Apre il form di modifica persone sotto la riga cliccata, leggendo le
+// persone già assegnate da data-persone-assegnate (impostato in
+// creaHtmlVoceMenu) invece di rifare una query: il dato è già disponibile
+// nel DOM dato che la griglia lo ha appena renderizzato.
+function apriFormModificaPersone(bottoneModifica) {
+    const rigaVoceMenu = bottoneModifica.closest('.voce-menu-riga');
+
+    // Se il form è già aperto (l'utente ha ricliccato "Modifica" senza
+    // prima salvare o annullare), non ne apriamo un secondo sopra.
+    if (rigaVoceMenu.querySelector('.form-modifica-persone')) {
+        return;
+    }
+
+    const idRiga = rigaVoceMenu.dataset.id;
+    const personeAssegnate = rigaVoceMenu.dataset.personeAssegnate
+        ? rigaVoceMenu.dataset.personeAssegnate.split(',')
+        : [];
+
+    rigaVoceMenu.insertAdjacentHTML('beforeend', creaHtmlFormModificaPersone(idRiga, personeAssegnate));
+}
+
+// Legge le checkbox spuntate nel form di modifica e aggiorna la colonna
+// persone_assegnate della riga menu_settimanale corrispondente (tramite
+// il suo id, salvato in data-id sul bottone "Salva"). Poi ricarica tutta
+// la griglia: è il modo più semplice per essere certi che i pallini
+// persona mostrati riflettano subito il nuovo array salvato.
+async function salvaModificaPersone(bottoneSalva) {
+    const formModifica = bottoneSalva.closest('.form-modifica-persone');
+    const idRiga = bottoneSalva.dataset.id;
+
+    const personeSelezionate = Array.from(
+        formModifica.querySelectorAll('.checkbox-persona-modifica:checked')
+    ).map((checkbox) => checkbox.value);
+
+    const { error } = await supabase
+        .from('menu_settimanale')
+        .update({ persone_assegnate: personeSelezionate })
+        .eq('id', idRiga);
+
+    if (error) {
+        alert('Errore nel salvataggio delle persone assegnate: ' + error.message);
+        return;
+    }
+
+    await generaGriglia();
 }
 
 // Genera il markup HTML di un intero blocco pasto (es. "Lunedì - Cena"):
@@ -298,6 +387,67 @@ function creaHtmlBloccoPasto(giorno, pasto, righeCella) {
                 ${righeHtml}
             </div>
             <span class="link-aggiungi-pasto btn-mostra-form-aggiungi">+ Aggiungi</span>
+        </div>
+    `;
+}
+
+// ==========================================================
+// FUNZIONALITÀ "RIPETI ANCHE IN QUESTI PASTI"
+// ==========================================================
+// Genera la piccola tabella 7 giorni x 5 pasti mostrata dentro il form
+// "persone rapido": ogni cella è una checkbox identificata dai suoi
+// data-giorno/data-pasto, così al momento della conferma (vedi
+// confermaPersoneRapido) possiamo ricavare direttamente da questi
+// attributi in quali altri giorni/pasti replicare la stessa ricetta,
+// senza dover fare altri calcoli o mapping.
+//
+// La cella che corrisponde al giorno/pasto di partenza (quello da cui
+// l'utente ha cliccato "+ Aggiungi") viene marcata "checked disabled":
+// resta sempre spuntata (l'inserimento in quel giorno/pasto avviene
+// comunque, è l'inserimento "principale") e l'utente non può togliere
+// la spunta per errore. Nota: un checkbox disabled NON invia il proprio
+// valore se il form venisse inviato con un vero <form> HTML, ma qui non
+// usiamo mai l'invio nativo del form — leggiamo lo stato con
+// querySelectorAll('.checkbox-ripeti-pasto:checked'), e la proprietà
+// "checked" resta leggibile via JavaScript anche su un elemento
+// disabled: per questo la cella di origine viene comunque inclusa tra
+// le righe da inserire.
+function creaHtmlGrigliaRipeti(giornoOriginale, pastoOriginale) {
+    // Riga di intestazione con il nome di ciascun pasto (colonne).
+    const intestazioniPasti = PASTI
+        .map((pasto) => `<th class="text-center small fw-normal">${pasto.etichetta}</th>`)
+        .join('');
+
+    // Una riga <tr> per ciascun giorno, con una cella-checkbox per
+    // ciascun pasto: il prodotto GIORNI x PASTI genera esattamente le
+    // 35 celle della griglia, una per ogni possibile giorno/pasto.
+    const righeGiorni = GIORNI
+        .map((giorno) => {
+            const celle = PASTI
+                .map((pasto) => {
+                    const eCellaOriginale = giorno.chiave === giornoOriginale && pasto.chiave === pastoOriginale;
+                    return `
+                        <td class="text-center">
+                            <input class="form-check-input checkbox-ripeti-pasto" type="checkbox"
+                                data-giorno="${giorno.chiave}" data-pasto="${pasto.chiave}"
+                                ${eCellaOriginale ? 'checked disabled' : ''}>
+                        </td>
+                    `;
+                })
+                .join('');
+            return `<tr><td class="small pe-2">${giorno.etichetta}</td>${celle}</tr>`;
+        })
+        .join('');
+
+    return `
+        <div class="mb-2 griglia-ripeti-pasti-contenitore">
+            <p class="small mb-1"><strong>Ripeti anche in questi pasti</strong></p>
+            <div class="table-responsive">
+                <table class="table table-sm table-borderless align-middle mb-0 griglia-ripeti-pasti">
+                    <thead><tr><th></th>${intestazioniPasti}</tr></thead>
+                    <tbody>${righeGiorni}</tbody>
+                </table>
+            </div>
         </div>
     `;
 }
@@ -349,10 +499,16 @@ export function apriFormPersoneRapido(giorno, tipoPasto, ricettaId, nomeRicetta)
         })
         .join('');
 
+    // Griglia "Ripeti anche in questi pasti" (vedi creaHtmlGrigliaRipeti
+    // sopra): passiamo il giorno/pasto di partenza così la funzione sa
+    // quale cella pre-selezionare e disabilitare.
+    const grigliaRipetiHtml = creaHtmlGrigliaRipeti(giorno, tipoPasto);
+
     const formHtml = `
         <div class="form-persone-rapido mt-2" data-ricetta-id="${ricettaId}">
             <p class="small mb-2">Ricetta scelta: <strong>${nomeRicetta}</strong></p>
             <div class="mb-2">${checkboxPersone}</div>
+            ${grigliaRipetiHtml}
             <button type="button" class="btn btn-success btn-sm btn-conferma-persone-rapido">Conferma</button>
             <button type="button" class="btn btn-secondary btn-sm btn-annulla-persone-rapido">Annulla</button>
         </div>
@@ -372,33 +528,50 @@ export function apriFormPersoneRapido(giorno, tipoPasto, ricettaId, nomeRicetta)
 // solo le persone spuntate.
 async function confermaPersoneRapido(bottoneConferma) {
     const formRapido = bottoneConferma.closest('.form-persone-rapido');
-    const bloccoPasto = bottoneConferma.closest('.blocco-pasto');
-    const giorno = bloccoPasto.dataset.giorno;
-    const pasto = bloccoPasto.dataset.pasto;
     const ricettaId = formRapido.dataset.ricettaId;
 
     const personeSelezionate = Array.from(
         formRapido.querySelectorAll('.checkbox-persona-rapido:checked')
     ).map((checkbox) => checkbox.value);
 
+    // FUNZIONALITÀ "Ripeti anche in questi pasti": leggiamo TUTTE le
+    // celle spuntate nella griglia giorno×pasto (creaHtmlGrigliaRipeti),
+    // compresa quella del giorno/pasto originale (checked ma disabled:
+    // querySelectorAll(':checked') la trova comunque, vedi il commento
+    // sopra la funzione). Per ciascuna cella spuntata costruiamo un
+    // oggetto-riga da inserire: stessa settimana, stessa ricetta, stesse
+    // persone selezionate, ma giorno e tipo_pasto presi dai data-attribute
+    // di quella specifica cella.
+    const righeDaInserire = Array.from(
+        formRapido.querySelectorAll('.checkbox-ripeti-pasto:checked')
+    ).map((checkbox) => ({
+        settimana_inizio: settimanaInizioCorrente,
+        giorno: checkbox.dataset.giorno,
+        tipo_pasto: checkbox.dataset.pasto,
+        ricetta_id: ricettaId,
+        persone_assegnate: personeSelezionate
+    }));
+
+    // Un'unica chiamata .insert(righeDaInserire) con un ARRAY di oggetti,
+    // invece di un ciclo con una insert separata per ogni riga: Supabase
+    // (PostgREST) accetta un array e lo traduce in una singola istruzione
+    // SQL INSERT con più VALUES, quindi è più veloce (una sola richiesta
+    // di rete invece di N) ed è atomica (se una riga fallisse, falliscono
+    // tutte: niente rischio di ritrovarsi a metà con solo alcuni dei
+    // pasti selezionati effettivamente salvati).
     const { error } = await supabase
         .from('menu_settimanale')
-        .insert({
-            settimana_inizio: settimanaInizioCorrente,
-            giorno: giorno,
-            tipo_pasto: pasto,
-            ricetta_id: ricettaId,
-            persone_assegnate: personeSelezionate
-        });
+        .insert(righeDaInserire);
 
     if (error) {
         alert('Errore nel salvataggio della voce di menù: ' + error.message);
         return;
     }
 
-    // Ricostruiamo tutta la griglia: così la nuova voce compare subito
-    // (il form "persone rapido" sparisce da solo, dato che generaGriglia
-    // ricrea tutto da zero a partire dai dati appena salvati).
+    // Ricostruiamo tutta la griglia: così la nuova voce (o le nuove
+    // voci, una per ogni pasto ripetuto) compare subito (il form
+    // "persone rapido" sparisce da solo, dato che generaGriglia ricrea
+    // tutto da zero a partire dai dati appena salvati).
     await generaGriglia();
 }
 
@@ -490,6 +663,28 @@ grigliaMenu.addEventListener('click', async (event) => {
     const bottoneRimuovi = event.target.closest('.btn-rimuovi-voce-menu');
     if (bottoneRimuovi) {
         await rimuoviVoceMenu(bottoneRimuovi.dataset.id);
+        return;
+    }
+
+    // FUNZIONALITÀ "Modifica persone": apre/salva/annulla il form inline
+    // di modifica persone di una voce di menù già assegnata (vedi le tre
+    // funzioni definite sopra, subito dopo creaHtmlVoceMenu).
+    const bottoneModifica = event.target.closest('.btn-modifica-voce-menu');
+    if (bottoneModifica) {
+        apriFormModificaPersone(bottoneModifica);
+        return;
+    }
+
+    const bottoneSalvaModifica = event.target.closest('.btn-salva-modifica-persone');
+    if (bottoneSalvaModifica) {
+        await salvaModificaPersone(bottoneSalvaModifica);
+        return;
+    }
+
+    const bottoneAnnullaModifica = event.target.closest('.btn-annulla-modifica-persone');
+    if (bottoneAnnullaModifica) {
+        // Chiude il form senza modificare nulla: basta rimuoverlo dal DOM.
+        bottoneAnnullaModifica.closest('.form-modifica-persone').remove();
         return;
     }
 });
