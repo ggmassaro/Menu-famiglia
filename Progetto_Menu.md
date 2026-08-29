@@ -60,7 +60,7 @@ id, nome, ruolo, fattore_porzione, created_at
 ### `ricette`
 id, nome, categoria_pasto (**array** di testo — multi-selezione tra
 colazione/spuntino/pranzo/merenda/cena), categoria_alimentare (uno tra
-carne_rossa/carne_bianca/pesce/legumi/formaggi_uova/verdura/cereali),
+carne_rossa/carne_bianca/pesce/legumi/formaggi_uova/verdura/cereali/frutta),
 adatto_a (adulti/bambini/tutti), note, created_at
 
 ### `ingredienti`
@@ -167,7 +167,7 @@ ogni implementazione.
 - Colori categoria alimentare (badge pieni, usati ovunque compaia una
   ricetta): carne_rossa `#E4572E`, carne_bianca `#CC7A3D`, pesce `#1E88C7`,
   legumi `#7C8A28`, formaggi_uova `#B1527A`, verdura `#3F8C46`, cereali
-  `#F2B705` (testo scuro)
+  `#F2B705` (testo scuro), frutta `#9C27B0` (testo bianco)
 - Colori giorno (solo per la fascia colorata in cima a ogni card giorno nel
   menù, puramente per orientamento visivo): stessi 7 colori delle categorie,
   riusati in rotazione fissa lun→dom
@@ -242,3 +242,126 @@ Gioele) — solo colore, forma, tipografia.
 2. Eventuale PDF della lista della spesa
 3. Bug fix e rifiniture emersi dall'uso reale con Giovanna
 4. Eventuale storico menù passati
+
+---
+
+## Aggiornamento post-pubblicazione (sessione successiva)
+
+### Icona app e PWA
+- Icona dell'app creata da zero con Claude (Pillow/Python, generata direttamente
+  in chat, non tramite Claude Code): sfondo diviso in 4 quadranti colorati
+  (uno per persona, stessi colori identificativi), cerchio bianco centrale,
+  forchetta e coltello (stessa lunghezza) disegnati dentro
+- File generati: `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`
+  (quadrato pieno senza trasparenza, per iOS), `favicon-32.png`,
+  `favicon-16.png`, `favicon.ico` — tutti dentro cartella `icons/` nel progetto
+- **Corretto un problema di aliasing**: le icone erano generate disegnando
+  le linee direttamente alla dimensione finale (risultato "sgranato"/con bordi
+  seghettati). Soluzione: tecnica del sovracampionamento — disegnare a una
+  risoluzione 4 volte più grande e rimpicciolire con filtro LANCZOS, che
+  produce bordi lisci. Da ricordare per qualsiasi icona/immagine generata in
+  futuro con Pillow o strumenti simili
+- Aggiunto `manifest.json` (nome app, colori, icone, `display: standalone`)
+  e i tag `<link rel="icon">`, `<link rel="apple-touch-icon">`,
+  `<link rel="manifest">` in `index.html`
+- **App installata sulla home del telefono** (Android: Chrome → Aggiungi a
+  schermata Home; iOS: Safari → Condividi → Aggiungi a Home) — funziona come
+  una vera app, schermo intero, senza barra del browser
+- Nota per il futuro: se si aggiorna l'icona dopo che è già stata installata
+  sul telefono, il dispositivo tiene una copia in cache. Serve rimuovere
+  l'icona dalla home e rifare "Aggiungi a Home" da capo per vedere la nuova
+  versione
+
+### Caricamento massivo di 58 nuove ricette
+- Gioele ha fornito un elenco di piatti di uso frequente in famiglia
+- Claude ha proposto categoria pasto/alimentare/adatto_a/ingredienti per
+  ciascuno (basandosi sulle grammature del piano alimentare CREA di Gioele
+  dove pertinente), Gioele ha corretto alcuni punti prima della generazione:
+  - "Riso con piselli" spostato da Cereali a **Legumi** (i piselli sono un
+    legume, incoerenza iniziale corretta)
+  - Quantità di pasta/riso/patate standardizzate sul **valore "pranzo"**
+    del piano CREA (90g pasta, 270g patate), non il valore cena, per
+    coerenza in tutte le ricette con doppio tag pranzo+cena
+  - **Patate**: categorizzate come **Cereali**, non Verdura — il piano CREA
+    le tratta come fonte di carboidrati/primo piatto, non come contorno
+  - **Insalate** (tonno, uova, mozzarella): categoria **Verdura**,
+    `adatto_a: adulti`
+  - **Patate con paprika**: `adatto_a: adulti`
+  - Tutte le altre 55 ricette: `adatto_a: tutti`
+- Il file SQL è stato generato con uno script Python (scritto ed eseguito
+  da Claude nel proprio ambiente) invece che scritto a mano, per ridurre il
+  rischio di errori di battitura su un volume così alto di dati — stessa
+  struttura CTE già usata nel file `dati_iniziali.sql` originale
+- **Totale ricette nel database dopo questo caricamento: 64** (6 originali
+  + 58 nuove)
+
+### Suggerimento automatico quantità ingredienti
+- Nuovo file `js/suggerimenti-ingredienti.js`: dizionario di grammature
+  di riferimento (fonte: tabella grammature del piano CREA di Gioele),
+  con voci sia per pranzo sia per cena
+- Mentre si scrive il nome di un ingrediente nel form ricetta, appare un
+  suggerimento cliccabile ("Suggerito dal tuo piano: X g") che precompila
+  quantità e unità; resta sempre facoltativo, l'utente può ignorarlo o
+  modificare liberamente
+- Caso speciale per le uova: suggerisce sempre "2 pezzi" con arrotondamento
+  a pezzo attivo, mai un peso in grammi
+- Se la ricetta ha sia "pranzo" sia "cena" selezionati, usa il valore
+  pranzo come default (stessa convenzione già adottata per patate/pasta)
+
+### Selezione ricetta dal libretto durante la composizione del menù
+- Problema riscontrato: con 64 ricette, il vecchio menu a tendina nel form
+  "+ Aggiungi ricetta" del Menù Settimanale era troppo lungo/scomodo
+- Soluzione implementata: flusso a due passaggi tramite un nuovo modulo
+  condiviso `js/stato-selezione.js` (evita dipendenze circolari tra
+  `menu.js` e `ricette.js`):
+  1. Click su "+ Aggiungi" per un giorno/pasto → si apre il Libretto
+     Ricette in "modalità selezione" (banner in cima, filtro pasto
+     pre-impostato automaticamente sul tipo di pasto richiesto)
+  2. L'utente sfoglia/filtra le ricette (per categoria alimentare E per
+     categoria pasto, filtri combinabili) e clicca "Aggiungi qui" sulla
+     card scelta
+  3. Si torna al Menù Settimanale con un piccolo form già pronto (ricetta
+     già fissata, solo le checkbox delle persone da spuntare) per
+     confermare l'inserimento
+- Aggiunto anche un secondo gruppo di filtri a chip nel Libretto Ricette,
+  per categoria pasto (Colazione/Spuntino/Pranzo/Merenda/Cena), oltre a
+  quelli già esistenti per categoria alimentare
+
+### Accordion nel Menù Settimanale
+- Le 7 card giorno ora partono **chiuse** di default (solo la fascia
+  colorata con il nome è visibile), tranne il **giorno corrente**, che
+  parte già aperto
+- Click sulla fascia colorata per aprire/chiudere il contenuto (pasti,
+  ricette assegnate, bottoni aggiungi/rimuovi)
+- Risolve anche, di riflesso, il problema dello scroll lunghissimo su
+  mobile di cui si era discusso in una fase precedente
+
+### Promemoria "pianifica la settimana prossima"
+- Nuovo file `js/promemoria-home.js`
+- Ogni **venerdì**, se la settimana successiva non ha ancora nessun pasto
+  pianificato, compare un banner nella Home sotto le 3 card principali
+- Il banner offre un bottone "Usa come base la settimana scorsa": copia
+  tutte le righe di `menu_settimanale` dell'ultima settimana pianificata
+  nella settimana successiva (stesso giorno/pasto/ricetta/persone), così
+  Gioele parte da un menù già pronto invece che da zero, e poi lo
+  modifica/conferma
+- Il pulsante di duplicazione è disponibile solo se la settimana
+  successiva è **completamente vuota** (protezione contro sovrascritture
+  accidentali se per eccezione fosse già stata parzialmente pianificata)
+
+## Stato di avanzamento (aggiornato)
+- [x] Tutto quanto già completato nella sessione precedente
+- [x] Icona app + manifest + installazione su home telefono (con fix
+      anti-aliasing)
+- [x] Caricamento massivo di 58 ricette aggiuntive (totale: 64 ricette)
+- [x] Suggerimento automatico quantità ingredienti dal piano alimentare
+- [x] Selezione ricetta dal libretto (con filtri) durante composizione menù
+- [x] Filtri per categoria pasto nel libretto ricette
+- [x] Accordion (apri/chiudi) per i giorni del Menù Settimanale
+- [x] Promemoria del venerdì con proposta di duplicare il menù precedente
+
+## Prossimi passi possibili (aggiornato)
+1. Eventuale PDF della lista della spesa (non ancora fatto, solo il menù)
+2. Categoria "Latticini" separata da "Formaggi-Uova" (mai risolto)
+3. Salvataggio/ripristino stato "comprato" alla rigenerazione lista spesa
+4. Bug fix e rifiniture emerse dall'uso reale con Giovanna e le bambine

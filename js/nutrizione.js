@@ -13,7 +13,8 @@ const ETICHETTE_CATEGORIA_ALIMENTARE = {
     legumi: 'Legumi',
     formaggi_uova: 'Formaggi e Uova',
     verdura: 'Verdura',
-    cereali: 'Cereali'
+    cereali: 'Cereali',
+    frutta: 'Frutta' // Nuova categoria "Frutta": etichetta leggibile per l'utente
 };
 
 // ==========================================================
@@ -39,11 +40,11 @@ const ETICHETTE_CATEGORIA_ALIMENTARE = {
 //       ed uova) che avrebbero soglie diverse tra loro: non essendo
 //       distinguibili nei dati che abbiamo, non possiamo applicare una
 //       soglia corretta per l'una o per l'altra.
-//     - cereali e verdura andrebbero valutati in base alle porzioni
+//     - cereali, verdura e frutta andrebbero valutati in base alle porzioni
 //       giornaliere in grammi (come raccomandato dalle linee guida), non
 //       contando semplicemente "quante ricette a settimana": un conteggio
 //       di ricette non basta per dare un giudizio nutrizionalmente
-//       corretto su questi due gruppi.
+//       corretto su questi tre gruppi. // Commento aggiornato per includere la nuova categoria "frutta"
 const SOGLIE_NUTRIZIONALI = {
     carne_rossa: { tipo: 'soglia_massima', valore: 3 },
     carne_bianca: { tipo: 'intervallo_consigliato', min: 2, max: 3 },
@@ -51,7 +52,8 @@ const SOGLIE_NUTRIZIONALI = {
     legumi: { tipo: 'intervallo_consigliato', min: 3, max: 4 },
     formaggi_uova: { tipo: 'solo_conteggio' },
     cereali: { tipo: 'solo_conteggio' },
-    verdura: { tipo: 'solo_conteggio' }
+    verdura: { tipo: 'solo_conteggio' },
+    frutta: { tipo: 'solo_conteggio' } // Nuova categoria "Frutta": stesso trattamento di verdura/cereali, il piano CREA la misura in porzioni giornaliere in grammi, non in conteggio ricette
 };
 
 // ==========================================================
@@ -133,7 +135,7 @@ export async function calcolaEMostraRiepilogoNutrizionale(settimanaInizio) {
         return;
     }
 
-    // Inizializziamo il conteggio a 0 per tutte e 7 le categorie
+    // Inizializziamo il conteggio a 0 per tutte e 8 le categorie // Aggiornato da 7 a 8 per includere "frutta"
     // possibili: così anche una categoria mai pianificata questa
     // settimana (0 volte) compare comunque nel riepilogo, invece di
     // sparire semplicemente perché non ci sono righe da contare.
@@ -152,7 +154,7 @@ export async function calcolaEMostraRiepilogoNutrizionale(settimanaInizio) {
         }
     });
 
-    // Generiamo un badge per ciascuna delle 7 categorie, nello stesso
+    // Generiamo un badge per ciascuna delle 8 categorie, nello stesso // Aggiornato da 7 a 8 per includere "frutta"
     // ordine in cui sono definite le etichette, e li mostriamo tutti
     // impilati dentro #riepilogo-nutrizionale.
     const badgeHtml = Object.keys(ETICHETTE_CATEGORIA_ALIMENTARE)

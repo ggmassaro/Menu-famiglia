@@ -22,7 +22,8 @@ export const COLORI_CATEGORIA_ALIMENTARE = {
     legumi: { bg: '#7C8A28', testo: '#FFFFFF' },
     formaggi_uova: { bg: '#B1527A', testo: '#FFFFFF' },
     verdura: { bg: '#3F8C46', testo: '#FFFFFF' },
-    cereali: { bg: '#F2B705', testo: '#4A3900' }
+    cereali: { bg: '#F2B705', testo: '#4A3900' },
+    frutta: { bg: '#9C27B0', testo: '#FFFFFF' } // Nuova categoria "Frutta": badge viola con testo bianco
 };
 
 // Colori pieni e vivaci, usati per i pallini identificativi di persona

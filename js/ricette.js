@@ -31,7 +31,8 @@ const ETICHETTE_CATEGORIA_ALIMENTARE = {
     legumi: 'Legumi',
     formaggi_uova: 'Formaggi e Uova',
     verdura: 'Verdura',
-    cereali: 'Cereali'
+    cereali: 'Cereali',
+    frutta: 'Frutta' // Nuova categoria "Frutta": etichetta leggibile per l'utente
 };
 
 const ETICHETTE_ADATTO_A = {
