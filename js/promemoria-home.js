@@ -54,22 +54,16 @@ function parseDataISO(stringaData) {
 // FUNZIONE ESPORTATA: mostra il promemoria solo se serve davvero
 // ==========================================================
 // Richiamata da js/router.js ogni volta che si mostra (o si rientra
-// nella) vista Home. Il promemoria ha senso mostrarlo SOLO se:
-// 1) oggi è venerdì (il momento naturale per pianificare la settimana
-//    dopo, prima del weekend), E
-// 2) la settimana successiva non ha ancora nessuna ricetta pianificata
-//    (altrimenti l'utente ha già fatto il lavoro, il promemoria
-//    sarebbe solo un fastidio).
-// In tutti gli altri casi il contenitore resta vuoto.
+// nella) vista Home. Il promemoria ha senso mostrarlo SOLO se la
+// settimana successiva non ha ancora nessuna ricetta pianificata
+// (altrimenti l'utente ha già fatto il lavoro, il promemoria sarebbe
+// solo un fastidio): nessun vincolo sul giorno della settimana, viene
+// rivalutato ad ogni apertura della Home. In tutti gli altri casi il
+// contenitore resta vuoto.
 export async function mostraPromemoriaSeNecessario() {
     contenitorePromemoria.innerHTML = '';
 
     const oggi = new Date();
-
-    // getDay() === 5 vuol dire venerdì (0 = domenica, 1 = lunedì, ...).
-    if (oggi.getDay() !== 5) {
-        return;
-    }
 
     lunediSettimanaCorrente = calcolaLunedi(oggi);
     lunediSettimanaProssima = formattaDataISO(
@@ -106,13 +100,22 @@ export async function mostraPromemoriaSeNecessario() {
 // GENERAZIONE E GESTIONE DEL BANNER
 // ==========================================================
 
-// Mostra il banner iniziale, con l'invito a pianificare e il bottone
-// per copiare la settimana scorsa come base di partenza.
+// Mostra il banner iniziale, con l'invito a pianificare, il bottone per
+// copiare la settimana scorsa come base di partenza e il bottone "No,
+// non ora" per chiudere il banner senza fare nulla. Quest'ultimo NON
+// disattiva il promemoria in modo permanente (niente salvataggio su
+// Supabase né su localStorage): svuota solo il contenitore per la
+// sessione corrente, quindi ricaricando la pagina (o rientrando più
+// tardi nella Home) il promemoria può ricomparire, dato che
+// mostraPromemoriaSeNecessario() lo rivaluta sempre da zero.
 function mostraBannerPromemoria() {
     contenitorePromemoria.innerHTML = `
         <div class="alert alert-light border shadow-sm d-flex justify-content-between align-items-center flex-wrap gap-2 mb-0">
             <span>Programma il menù della prossima settimana, così hai la lista della spesa pronta per il weekend</span>
-            <button type="button" class="btn btn-azione btn-sm btn-copia-menu-precedente">Usa come base la settimana scorsa</button>
+            <span class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-azione btn-sm btn-copia-menu-precedente">Usa come base la settimana scorsa</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm btn-chiudi-promemoria">No, non ora</button>
+            </span>
         </div>
     `;
 }
@@ -132,6 +135,14 @@ contenitorePromemoria.addEventListener('click', async (event) => {
     const bottoneVaiAlMenu = event.target.closest('.btn-vai-al-menu');
     if (bottoneVaiAlMenu) {
         mostraVista('menu');
+        return;
+    }
+
+    // "No, non ora": chiude semplicemente il banner (svuota il
+    // contenitore), senza salvare nessuna preferenza da nessuna parte.
+    const bottoneChiudi = event.target.closest('.btn-chiudi-promemoria');
+    if (bottoneChiudi) {
+        contenitorePromemoria.innerHTML = '';
     }
 });
 
